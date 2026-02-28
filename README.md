@@ -1,2 +1,0 @@
-# FEDRO128
-Backend FEDRO128
