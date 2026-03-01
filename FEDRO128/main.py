@@ -1,49 +1,53 @@
 import os
-import re
-import gspread
+import json
 from fastapi import FastAPI, HTTPException
-from google.oauth2.service_account import Credentials
-from dotenv import load_dotenv
+import google.generativeai as genai
+from google.oauth2 import service_account
+import gspread
 
-load_dotenv()
-app = FastAPI()
+app = FastAPI(title="FEDRO API v1.0")
 
-# Configuración de Google Sheets
-SCOPE = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-# En Railway, pegaremos el contenido del JSON de la Service Account en una variable
-GOOGLE_CREDS_JSON = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+# --- CAPA DE CONFIANZA ---
+def get_infra():
+    # 1. Configurar IA (Cuenta Personal)
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if api_key:
+        genai.configure(api_key=api_key)
+    
+    # 2. Configurar Datos (Cuenta FEDRO)
+    creds_raw = os.environ.get("GOOGLE_CREDS_JSON")
+    if not creds_raw:
+        return None, None
+    
+    info_json = json.loads(creds_raw)
+    creds = service_account.Credentials.from_service_account_info(
+        info_json, 
+        scopes=['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+    )
+    client = gspread.authorize(creds)
+    return genai, client
 
-def get_sheet_client():
-    creds = Credentials.from_service_account_info(eval(GOOGLE_CREDS_JSON), scopes=SCOPE)
-    return gspread.authorize(creds)
+@app.get("/")
+def health_check():
+    ai, data = get_infra()
+    return {
+        "status": "FEDRO Online",
+        "ia_connected": ai is not None,
+        "data_connected": data is not None
+    }
 
-def sanitize_id(raw_id: str) -> str:
-    """Normaliza RUT: '9.123.456-K' -> '9123456K'"""
-    if not raw_id: return ""
-    return re.sub(r'[^a-zA-Z0-9]', '', str(raw_id)).upper()
-
-@app.get("/people/search")
-async def get_people(phone: str):
-    try:
-        client = get_sheet_client()
-        # Nombre del archivo que compartiste: FEDRO128
-        sheet = client.open("FEDRO128").worksheet("Cuadro")
-        records = sheet.get_all_records()
-        
-        search_phone = re.sub(r'\D', '', phone)
-        
-        # Búsqueda de QH por celular (Columna K)
-        for row in records:
-            if re.sub(r'\D', '', str(row['Celular'])) == search_phone:
-                return {
-                    "person_id": sanitize_id(row['RUT']),
-                    "display_name": str(row['Nombre Simple']).strip(),
-                    "rank": int(row['Grado']),
-                    "email_address": str(row['Email']).lower().strip(),
-                    "contact_phone": search_phone,
-                    "status": "active"
-                }
-        
-        raise HTTPException(status_code=404, detail="QH no encontrado.")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# Endpoint de Identidad (Fase 2, Punto 2)
+@app.get("/auth/perfil/{telefono}")
+def get_perfil(telefono: str):
+    _, gc = get_infra()
+    if not gc:
+        raise HTTPException(status_code=500, detail="Credenciales de datos no configuradas")
+    
+    # Aquí irá la lógica para buscar en Google Sheets
+    # Por ahora devolvemos un esquema de prueba (Mock)
+    return {
+        "identificado": True,
+        "telefono": telefono,
+        "rol": "Buscando en Sheets...",
+        "mensaje": "V1.0 MVP activa"
+    }
