@@ -1,5 +1,5 @@
 fastapi
-uvicorn
+uvicorn[standard]
 google-generativeai
 google-auth
 google-api-python-client
