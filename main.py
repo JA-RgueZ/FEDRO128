@@ -7,7 +7,7 @@ import gspread
 from fastapi.middleware.cors import CORSMiddleware
 
 # --- METADATA DEL PROYECTO ---
-VERSION = "1.1.7-stable" # Versión actualizada
+VERSION = "1.1.8-stable" # Versión actualizada
 app = FastAPI(title="FEDRO API", version=VERSION)
 
 # --- Configuración CORS ---
@@ -297,7 +297,7 @@ TESTER_HTML = """<!DOCTYPE html>
 
     function syntaxHighlight(json) {
         if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
-        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\\s*:)?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g, function(match) {
+        return json.replace(/("(\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\\s*:)?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g, function(match) {
             let cls = 'json-number';
             if (/^"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-string';
             else if (/true|false/.test(match)) cls = 'json-bool';
@@ -366,9 +366,18 @@ def get_sheets_client():
 
 # --- Helper function to get a row by RUT from a specific worksheet ---
 def _get_row_by_rut_from_sheet(rut_without_dv: str, sheet_name: str):
-    client = get_sheets_client()
-    spreadsheet = client.open("FEDRO128")
-    sheet = spreadsheet.worksheet(sheet_name)
+    try:
+        client = get_sheets_client()
+        spreadsheet = client.open("FEDRO128")
+        sheet = spreadsheet.worksheet(sheet_name)
+    except gspread.exceptions.WorksheetNotFound:
+        # Si la hoja no se encuentra, retornamos None para que el endpoint pueda manejarlo específicamente
+        print(f"Advertencia: La hoja de cálculo '{sheet_name}' no fue encontrada.")
+        return None
+    except Exception as e:
+        # Captura otros errores de gspread o autenticación y los eleva como HTTPException más descriptivo
+        raise HTTPException(status_code=500, detail=f"Error al acceder a la fuente de datos '{sheet_name}': {str(e)}")
+
 
     # Assuming RUT is always the first column (col_values(1))
     rut_column_values = sheet.col_values(1)
