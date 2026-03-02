@@ -7,7 +7,7 @@ import gspread
 from fastapi.middleware.cors import CORSMiddleware
 
 # --- METADATA DEL PROYECTO ---
-VERSION = "1.1.5-stable"
+VERSION = "1.1.7-stable" # Versión actualizada
 app = FastAPI(title="FEDRO API", version=VERSION)
 
 # --- Configuración CORS ---
@@ -30,7 +30,7 @@ TESTER_HTML = """<!DOCTYPE html>
         :root {
             --bg: #0a0c10; --surface: #111318; --surface2: #181c24;
             --border: #1e2430; --accent: #00e5a0; --accent2: #0070f3;
-            --accent3: #ff4d6d; --text: #e8eaf0; --muted: #5a6070;
+            --accent3: #ff4d6d; --text: #e8e4f0; --muted: #5a6070;
             --mono: 'Space Mono', monospace; --sans: 'Syne', sans-serif;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -162,6 +162,134 @@ TESTER_HTML = """<!DOCTYPE html>
         </div>
     </div>
 
+    <!-- NUEVOS ENDPOINTS FINANCIEROS -->
+    <div class="card">
+        <div class="card-header">
+            <span class="method-badge">GET</span>
+            <span class="endpoint-path">/financial/membresia_anual/<span class="param">{rut_without_dv}</span></span>
+        </div>
+        <div class="card-body">
+            <label for="rutMembresia">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>
+            <div class="input-row">
+                <input type="text" id="rutMembresia" placeholder="12345678">
+                <button onclick="getMembresiaAnual(this)"><span>&#8594;</span> Membres&iacute;a Anual</button>
+            </div>
+            <div class="result-box" id="boxMembresia">
+                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusMembresia"></span></div>
+                <div class="result-body"><pre id="resultMembresia"></pre></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="method-badge">GET</span>
+            <span class="endpoint-path">/financial/deuda_arrastre/<span class="param">{rut_without_dv}</span></span>
+        </div>
+        <div class="card-body">
+            <label for="rutDeudaArrastre">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>
+            <div class="input-row">
+                <input type="text" id="rutDeudaArrastre" placeholder="12345678">
+                <button onclick="getDeudaArrastre(this)"><span>&#8594;</span> Deuda de Arrastre</button>
+            </div>
+            <div class="result-box" id="boxDeudaArrastre">
+                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusDeudaArrastre"></span></div>
+                <div class="result-body"><pre id="resultDeudaArrastre"></pre></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="method-badge">GET</span>
+            <span class="endpoint-path">/financial/cuota_anual/<span class="param">{rut_without_dv}</span></span>
+        </div>
+        <div class="card-body">
+            <label for="rutCuotaAnual">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>
+            <div class="input-row">
+                <input type="text" id="rutCuotaAnual" placeholder="12345678">
+                <button onclick="getCuotaAnual(this)"><span>&#8594;</span> Cuota Anual</button>
+            </div>
+            <div class="result-box" id="boxCuotaAnual">
+                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusCuotaAnual"></span></div>
+                <div class="result-body"><pre id="resultCuotaAnual"></pre></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="method-badge">GET</span>
+            <span class="endpoint-path">/financial/pagado_a_la_fecha/<span class="param">{rut_without_dv}</span></span>
+        </div>
+        <div class="card-body">
+            <label for="rutPagadoFecha">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>
+            <div class="input-row">
+                <input type="text" id="rutPagadoFecha" placeholder="12345678">
+                <button onclick="getPagadoALaFecha(this)"><span>&#8594;</span> Pagado a la Fecha</button>
+            </div>
+            <div class="result-box" id="boxPagadoFecha">
+                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusPagadoFecha"></span></div>
+                <div class="result-body"><pre id="resultPagadoFecha"></pre></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="method-badge">GET</span>
+            <span class="endpoint-path">/financial/deuda/<span class="param">{rut_without_dv}</span></span>
+        </div>
+        <div class="card-body">
+            <label for="rutDeuda">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>
+            <div class="input-row">
+                <input type="text" id="rutDeuda" placeholder="12345678">
+                <button onclick="getDeuda(this)"><span>&#8594;</span> Obtener Deuda</button>
+            </div>
+            <div class="result-box" id="boxDeuda">
+                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusDeuda"></span></div>
+                <div class="result-body"><pre id="resultDeuda"></pre></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="method-badge">GET</span>
+            <span class="endpoint-path">/financial/mensaje/<span class="param">{rut_without_dv}</span></span>
+        </div>
+        <div class="card-body">
+            <label for="rutMensaje">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>
+            <div class="input-row">
+                <input type="text" id="rutMensaje" placeholder="12345678">
+                <button onclick="getMensaje(this)"><span>&#8594;</span> Obtener Mensaje</button>
+            </div>
+            <div class="result-box" id="boxMensaje">
+                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusMensaje"></span></div>
+                <div class="result-body"><pre id="resultMensaje"></pre></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NUEVO ENDPOINT CONSOLIDADO -->
+    <div class="card">
+        <div class="card-header">
+            <span class="method-badge">GET</span>
+            <span class="endpoint-path">/financial/all/<span class="param">{rut_without_dv}</span></span>
+        </div>
+        <div class="card-body">
+            <label for="rutFinancialAll">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>
+            <div class="input-row">
+                <input type="text" id="rutFinancialAll" placeholder="12345678">
+                <button onclick="getFinancialAll(this)"><span>&#8594;</span> Obtener Todo Financiero</button>
+            </div>
+            <div class="result-box" id="boxFinancialAll">
+                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusFinancialAll"></span></div>
+                <div class="result-body"><pre id="resultFinancialAll"></pre></div>
+            </div>
+        </div>
+    </div>
+
     <footer>FEDRO 128 &middot; API TESTER &middot; RAILWAY PRODUCTION</footer>
 </div>
 <script>
@@ -210,6 +338,14 @@ TESTER_HTML = """<!DOCTYPE html>
     function getPerfil(btn)    { callApi('/auth/perfil/{p}',   'telefonoPerfil', 'boxPerfil',   'resultPerfil',   'statusPerfil',   btn, 'Obtener Perfil'); }
     function getRut(btn)       { callApi('/auth/rut/{p}',      'telefonoRut',    'boxRut',      'resultRut',      'statusRut',      btn, 'Obtener RUT'); }
     function getClientall(btn) { callApi('/auth/clientall/{p}','rutClientall',   'boxClientall','resultClientall','statusClientall',btn, 'Obtener Cliente'); }
+    // Funciones para los nuevos endpoints financieros
+    function getMembresiaAnual(btn)  { callApi('/financial/membresia_anual/{p}', 'rutMembresia',   'boxMembresia',   'resultMembresia',   'statusMembresia',   btn, 'Membres&iacute;a Anual'); }
+    function getDeudaArrastre(btn) { callApi('/financial/deuda_arrastre/{p}', 'rutDeudaArrastre', 'boxDeudaArrastre', 'resultDeudaArrastre', 'statusDeudaArrastre', btn, 'Deuda de Arrastre'); }
+    function getCuotaAnual(btn)    { callApi('/financial/cuota_anual/{p}',    'rutCuotaAnual',    'boxCuotaAnual',    'resultCuotaAnual',    'statusCuotaAnual',    btn, 'Cuota Anual'); }
+    function getPagadoALaFecha(btn) { callApi('/financial/pagado_a_la_fecha/{p}', 'rutPagadoFecha',   'boxPagadoFecha',   'resultPagadoFecha',   'statusPagadoFecha',   btn, 'Pagado a la Fecha'); }
+    function getDeuda(btn)         { callApi('/financial/deuda/{p}',          'rutDeuda',         'boxDeuda',         'resultDeuda',         'statusDeuda',         btn, 'Obtener Deuda'); }
+    function getMensaje(btn)       { callApi('/financial/mensaje/{p}',        'rutMensaje',       'boxMensaje',       'resultMensaje',       'statusMensaje',       btn, 'Obtener Mensaje'); }
+    function getFinancialAll(btn)  { callApi('/financial/all/{p}',            'rutFinancialAll',  'boxFinancialAll',  'resultFinancialAll',  'statusFinancialAll',  btn, 'Obtener Todo Financiero'); }
 </script>
 </body>
 </html>"""
@@ -227,6 +363,31 @@ def get_sheets_client():
     ]
     creds = service_account.Credentials.from_service_account_info(info_json, scopes=scopes)
     return gspread.authorize(creds)
+
+# --- Helper function to get a row by RUT from a specific worksheet ---
+def _get_row_by_rut_from_sheet(rut_without_dv: str, sheet_name: str):
+    client = get_sheets_client()
+    spreadsheet = client.open("FEDRO128")
+    sheet = spreadsheet.worksheet(sheet_name)
+
+    # Assuming RUT is always the first column (col_values(1))
+    rut_column_values = sheet.col_values(1)
+
+    found_row_index = -1
+    for i, rut_full_with_dv in enumerate(rut_column_values):
+        # Clean and compare RUTs
+        cleaned_rut_in_sheet = rut_full_with_dv.replace(".", "").split('-')[0]
+        cleaned_input_rut = rut_without_dv.replace(".", "").split('-')[0]
+
+        if cleaned_rut_in_sheet == cleaned_input_rut:
+            found_row_index = i + 1  # gspread rows are 1-indexed
+            break
+
+    if found_row_index == -1:
+        return None  # No matching record found
+
+    row_data = sheet.row_values(found_row_index)
+    return row_data
 
 
 # --- ENDPOINT DE SALUD (HEALTH CHECK) ---
@@ -309,20 +470,9 @@ def get_rut(telefono: str):
 @app.get("/auth/clientall/{rut_without_dv}")
 def get_clientall(rut_without_dv: str):
     try:
-        client = get_sheets_client()
-        spreadsheet = client.open("FEDRO128")
-        sheet = spreadsheet.worksheet("Cuadro")
-        rut_column_values = sheet.col_values(1)
-        found_row_index = -1
-        for i, rut_full_with_dv in enumerate(rut_column_values):
-            cleaned_rut_in_sheet = rut_full_with_dv.replace(".", "").split('-')[0]
-            cleaned_input_rut = rut_without_dv.replace(".", "").split('-')[0]
-            if cleaned_rut_in_sheet == cleaned_input_rut:
-                found_row_index = i + 1
-                break
-        if found_row_index == -1:
+        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Cuadro")
+        if row_data is None:
             return {"identificado": False, "error": "No matching record found"}
-        row_data = sheet.row_values(found_row_index)
         return {
             "identificado": True,
             "data": row_data,
@@ -330,3 +480,142 @@ def get_clientall(rut_without_dv: str):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API: {str(e)}")
+
+# --- ENDPOINTS FINANCIEROS (NUEVOS) ---
+@app.get("/financial/membresia_anual/{rut_without_dv}")
+def get_membresia_anual(rut_without_dv: str):
+    try:
+        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesorería")
+        if row_data is None:
+            return {"identificado": False, "error": "No matching record found in Tesorería"}
+
+        # Membresía Anual: Columna E (Índice 4)
+        membresia_anual_value = row_data[4] if len(row_data) > 4 else "N/A"
+        return {
+            "identificado": True,
+            "rut": rut_without_dv,
+            "membresia_anual": membresia_anual_value,
+            "api_version": VERSION
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Membresia Anual): {str(e)}")
+
+@app.get("/financial/deuda_arrastre/{rut_without_dv}")
+def get_deuda_arrastre(rut_without_dv: str):
+    try:
+        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesorería")
+        if row_data is None:
+            return {"identificado": False, "error": "No matching record found in Tesorería"}
+
+        # Deuda de arrastre 2024: Columna G (Índice 6)
+        deuda_arrastre_value = row_data[6] if len(row_data) > 6 else "N/A"
+        return {
+            "identificado": True,
+            "rut": rut_without_dv,
+            "deuda_arrastre_2024": deuda_arrastre_value,
+            "api_version": VERSION
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Deuda Arrastre): {str(e)}")
+
+@app.get("/financial/cuota_anual/{rut_without_dv}")
+def get_cuota_anual(rut_without_dv: str):
+    try:
+        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesorería")
+        if row_data is None:
+            return {"identificado": False, "error": "No matching record found in Tesorería"}
+
+        # Cuota anual: Columna I (Índice 8)
+        cuota_anual_value = row_data[8] if len(row_data) > 8 else "N/A"
+        return {
+            "identificado": True,
+            "rut": rut_without_dv,
+            "cuota_anual": cuota_anual_value,
+            "api_version": VERSION
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Cuota Anual): {str(e)}")
+
+@app.get("/financial/pagado_a_la_fecha/{rut_without_dv}")
+def get_pagado_a_la_fecha(rut_without_dv: str):
+    try:
+        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesorería")
+        if row_data is None:
+            return {"identificado": False, "error": "No matching record found in Tesorería"}
+
+        # Pagado a la fecha: Columna K (Índice 10)
+        pagado_a_la_fecha_value = row_data[10] if len(row_data) > 10 else "N/A"
+        return {
+            "identificado": True,
+            "rut": rut_without_dv,
+            "pagado_a_la_fecha": pagado_a_la_fecha_value,
+            "api_version": VERSION
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Pagado a la Fecha): {str(e)}")
+
+@app.get("/financial/deuda/{rut_without_dv}")
+def get_deuda(rut_without_dv: str):
+    try:
+        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesorería")
+        if row_data is None:
+            return {"identificado": False, "error": "No matching record found in Tesorería"}
+
+        # Deuda: Columna S (Índice 18)
+        deuda_value = row_data[18] if len(row_data) > 18 else "N/A"
+        return {
+            "identificado": True,
+            "rut": rut_without_dv,
+            "deuda": deuda_value,
+            "api_version": VERSION
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Deuda): {str(e)}")
+
+@app.get("/financial/mensaje/{rut_without_dv}")
+def get_mensaje(rut_without_dv: str):
+    try:
+        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesorería")
+        if row_data is None:
+            return {"identificado": False, "error": "No matching record found in Tesorería"}
+
+        # Mensaje: Columna T (Índice 19)
+        mensaje_value = row_data[19] if len(row_data) > 19 else "N/A"
+        return {
+            "identificado": True,
+            "rut": rut_without_dv,
+            "mensaje": mensaje_value,
+            "api_version": VERSION
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Mensaje): {str(e)}")
+
+# --- NUEVO ENDPOINT CONSOLIDADO DE DATOS FINANCIEROS ---
+@app.get("/financial/all/{rut_without_dv}")
+def get_financial_all(rut_without_dv: str):
+    try:
+        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesorería")
+        if row_data is None:
+            return {"identificado": False, "error": "No matching record found in Tesorería"}
+
+        # Extraer todos los valores según los índices proporcionados
+        membresia_anual_value = row_data[4] if len(row_data) > 4 else "N/A"     # Columna E (Índice 4)
+        deuda_arrastre_value = row_data[6] if len(row_data) > 6 else "N/A"    # Columna G (Índice 6)
+        cuota_anual_value = row_data[8] if len(row_data) > 8 else "N/A"       # Columna I (Índice 8)
+        pagado_a_la_fecha_value = row_data[10] if len(row_data) > 10 else "N/A" # Columna K (Índice 10)
+        deuda_value = row_data[18] if len(row_data) > 18 else "N/A"           # Columna S (Índice 18)
+        mensaje_value = row_data[19] if len(row_data) > 19 else "N/A"         # Columna T (Índice 19)
+
+        return {
+            "identificado": True,
+            "rut": rut_without_dv,
+            "membresia_anual": membresia_anual_value,
+            "deuda_arrastre_2024": deuda_arrastre_value,
+            "cuota_anual": cuota_anual_value,
+            "pagado_a_la_fecha": pagado_a_la_fecha_value,
+            "deuda": deuda_value,
+            "mensaje": mensaje_value,
+            "api_version": VERSION
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Consolidado Financiero): {str(e)}")
