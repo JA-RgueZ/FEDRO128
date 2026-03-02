@@ -7,7 +7,7 @@ import gspread
 from fastapi.middleware.cors import CORSMiddleware
 
 # --- METADATA DEL PROYECTO ---
-VERSION = "1.1.9-stable" # Versión actualizada
+VERSION = "1.1.8-stable" # Versión actualizada
 app = FastAPI(title="FEDRO API", version=VERSION)
 
 # --- Configuración CORS ---
@@ -87,7 +87,7 @@ TESTER_HTML = r"""<!DOCTYPE html>
         pre .json-bool { color: #ff8c69; }
         pre .json-null { color: var(--muted); }
         .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(0,0,0,0.2); border-top-color: #000; border-radius: 50%; animation: spin 0.6s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes spin { to { transform: rotate(360deg); } } 
         footer { margin-top: 60px; text-align: center; font-family: var(--mono); font-size: 11px; color: var(--muted); }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -100,7 +100,7 @@ TESTER_HTML = r"""<!DOCTYPE html>
         <div class="logo-badge">FE<br>DRO</div>
         <div class="header-text">
             <h1>FEDRO <span>API</span> Tester</h1>
-            <p>Conectado a <code>fedro128-production.up.railway.app</code></p>
+            <p>Conectado a <code>fedro128-production.up.railway.app</code> (<code>v{api_version_placeholder}</code>)</p>
         </div>
     </header>
     <div class="status-bar">
@@ -297,12 +297,12 @@ TESTER_HTML = r"""<!DOCTYPE html>
 
     function syntaxHighlight(json) {
         if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
-        return json.replace(/("(\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\\s*:)?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g, function(match) {
+        return json.replace(/(\"(\\u[a-zA-Z0-9]{4}|\\\\[^u]|[^\\\\\"])*\"\\\\s*:)?|\\\\b(true|false|null)\\\\b|-?\\\\d+(?:\\\\.\\\\d*)?(?:[eE][+\\\\-]?\\\\d+)?)/g, function(match) {
             let cls = 'json-number';
-            if (/^"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-string';
+            if (/^\"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-string';
             else if (/true|false/.test(match)) cls = 'json-bool';
             else if (/null/.test(match)) cls = 'json-null';
-            return '<span class="' + cls + '">' + match + '</span>';
+            return '<span class=\"' + cls + '\">' + match + '</span>';
         });
     }
 
@@ -378,7 +378,8 @@ def _get_row_by_rut_from_sheet(rut_without_dv: str, sheet_name: str):
         # Captura otros errores de gspread o autenticación y los eleva como HTTPException más descriptivo
         raise HTTPException(status_code=500, detail=f"Error al acceder a la fuente de datos '{sheet_name}': {str(e)}")
 
-    print(f"Buscando RUT: {rut_without_dv} en la hoja '{sheet_name}'.") # Debugging line
+    if sheet_name == "Tesoreria":
+        print(f"Buscando RUT: {rut_without_dv} en la hoja '{sheet_name}'.") # Debugging line
 
     # Assuming RUT is always the first column (col_values(1))
     rut_column_values = sheet.col_values(1)
@@ -390,17 +391,20 @@ def _get_row_by_rut_from_sheet(rut_without_dv: str, sheet_name: str):
         # Clean and compare RUTs
         cleaned_rut_in_sheet = rut_full_with_dv.replace(".", "").split('-')[0].strip()
 
-        print(f"  Comparando '{cleaned_input_rut}' con '{cleaned_rut_in_sheet}' de la fila {i+1}.") # Debugging line
+        if sheet_name == "Tesoreria":
+            print(f"  Comparando '{cleaned_input_rut}' con '{cleaned_rut_in_sheet}' de la fila {i+1}.") # Debugging line
 
         if cleaned_rut_in_sheet == cleaned_input_rut:
             found_row_index = i + 1  # gspread rows are 1-indexed
             break
 
     if found_row_index == -1:
-        print(f"RUT '{rut_without_dv}' no encontrado en la hoja '{sheet_name}'.") # Debugging line
+        if sheet_name == "Tesoreria":
+            print(f"RUT '{rut_without_dv}' no encontrado en la hoja '{sheet_name}'.") # Debugging line
         return None  # No matching record found
 
-    print(f"RUT '{rut_without_dv}' encontrado en la fila {found_row_index} de la hoja '{sheet_name}'.") # Debugging line
+    if sheet_name == "Tesoreria":
+        print(f"RUT '{rut_without_dv}' encontrado en la fila {found_row_index} de la hoja '{sheet_name}'.") # Debugging line
     row_data = sheet.row_values(found_row_index)
     return row_data
 
@@ -419,7 +423,7 @@ def health_check():
 # --- ENDPOINT TESTER HTML ---
 @app.get("/fedro-tester", response_class=HTMLResponse)
 def get_tester():
-    return HTMLResponse(content=TESTER_HTML)
+    return HTMLResponse(content=TESTER_HTML.format(api_version_placeholder=VERSION))
 
 
 # --- ENDPOINT: BÚSQUEDA POR TELÉFONO → PERFIL ---
@@ -496,13 +500,13 @@ def get_clientall(rut_without_dv: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API: {str(e)}")
 
-# --- ENDPOINTS FINANCIEROS (NUEVOS) ---
+# --- ENDPOINT: Obtener Membresía Anual por RUT ---
 @app.get("/financial/membresia_anual/{rut_without_dv}")
 def get_membresia_anual(rut_without_dv: str):
     try:
-        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesorería")
+        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesoreria")
         if row_data is None:
-            return {"identificado": False, "error": "No matching record found in Tesorería"}
+            return {"identificado": False, "error": "No matching record found in Tesoreria"}
 
         # Membresía Anual: Columna E (Índice 4)
         membresia_anual_value = row_data[4] if len(row_data) > 4 else "N/A"
@@ -515,12 +519,13 @@ def get_membresia_anual(rut_without_dv: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Membresia Anual): {str(e)}")
 
+# --- ENDPOINT: Obtener Deuda de Arrastre por RUT ---
 @app.get("/financial/deuda_arrastre/{rut_without_dv}")
 def get_deuda_arrastre(rut_without_dv: str):
     try:
-        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesorería")
+        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesoreria")
         if row_data is None:
-            return {"identificado": False, "error": "No matching record found in Tesorería"}
+            return {"identificado": False, "error": "No matching record found in Tesoreria"}
 
         # Deuda de arrastre 2024: Columna G (Índice 6)
         deuda_arrastre_value = row_data[6] if len(row_data) > 6 else "N/A"
@@ -533,12 +538,13 @@ def get_deuda_arrastre(rut_without_dv: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Deuda Arrastre): {str(e)}")
 
+# --- ENDPOINT: Obtener Cuota Anual por RUT ---
 @app.get("/financial/cuota_anual/{rut_without_dv}")
 def get_cuota_anual(rut_without_dv: str):
     try:
-        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesorería")
+        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesoreria")
         if row_data is None:
-            return {"identificado": False, "error": "No matching record found in Tesorería"}
+            return {"identificado": False, "error": "No matching record found in Tesoreria"}
 
         # Cuota anual: Columna I (Índice 8)
         cuota_anual_value = row_data[8] if len(row_data) > 8 else "N/A"
@@ -551,12 +557,13 @@ def get_cuota_anual(rut_without_dv: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Cuota Anual): {str(e)}")
 
+# --- ENDPOINT: Obtener Pagado a la Fecha por RUT ---
 @app.get("/financial/pagado_a_la_fecha/{rut_without_dv}")
 def get_pagado_a_la_fecha(rut_without_dv: str):
     try:
-        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesorería")
+        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesoreria")
         if row_data is None:
-            return {"identificado": False, "error": "No matching record found in Tesorería"}
+            return {"identificado": False, "error": "No matching record found in Tesoreria"}
 
         # Pagado a la fecha: Columna K (Índice 10)
         pagado_a_la_fecha_value = row_data[10] if len(row_data) > 10 else "N/A"
@@ -569,12 +576,13 @@ def get_pagado_a_la_fecha(rut_without_dv: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Pagado a la Fecha): {str(e)}")
 
+# --- ENDPOINT: Obtener Deuda por RUT ---
 @app.get("/financial/deuda/{rut_without_dv}")
 def get_deuda(rut_without_dv: str):
     try:
-        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesorería")
+        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesoreria")
         if row_data is None:
-            return {"identificado": False, "error": "No matching record found in Tesorería"}
+            return {"identificado": False, "error": "No matching record found in Tesoreria"}
 
         # Deuda: Columna S (Índice 18)
         deuda_value = row_data[18] if len(row_data) > 18 else "N/A"
@@ -587,12 +595,13 @@ def get_deuda(rut_without_dv: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Deuda): {str(e)}")
 
+# --- ENDPOINT: Obtener Mensaje por RUT ---
 @app.get("/financial/mensaje/{rut_without_dv}")
 def get_mensaje(rut_without_dv: str):
     try:
-        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesorería")
+        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesoreria")
         if row_data is None:
-            return {"identificado": False, "error": "No matching record found in Tesorería"}
+            return {"identificado": False, "error": "No matching record found in Tesoreria"}
 
         # Mensaje: Columna T (Índice 19)
         mensaje_value = row_data[19] if len(row_data) > 19 else "N/A"
@@ -605,13 +614,13 @@ def get_mensaje(rut_without_dv: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Mensaje): {str(e)}")
 
-# --- NUEVO ENDPOINT CONSOLIDADO DE DATOS FINANCIEROS ---
+# --- ENDPOINT: Obtener Todos los Datos Financieros por RUT ---
 @app.get("/financial/all/{rut_without_dv}")
 def get_financial_all(rut_without_dv: str):
     try:
-        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesorería")
+        row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesoreria")
         if row_data is None:
-            return {"identificado": False, "error": "No matching record found in Tesorería"}
+            return {"identificado": False, "error": "No matching record found in Tesoreria"}
 
         # Extraer todos los valores según los índices proporcionados
         membresia_anual_value = row_data[4] if len(row_data) > 4 else "N/A"     # Columna E (Índice 4)
