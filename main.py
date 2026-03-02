@@ -7,7 +7,7 @@ import gspread
 from fastapi.middleware.cors import CORSMiddleware
 
 # --- METADATA DEL PROYECTO ---
-VERSION = "1.1.13-stable" # Versión actualizada
+VERSION = "1.1.14-stable" # Versión actualizada
 app = FastAPI(title="FEDRO API", version=VERSION)
 
 # --- Configuración CORS ---
@@ -298,7 +298,7 @@ TESTER_HTML = r"""<!DOCTYPE html>
 
     function syntaxHighlight(json) {
         if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
-        return json.replace(/("(\u[a-zA-Z0-9]{4}|\\[^u]|[^\\\"])*"\\s*:)?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g, function(match) {
+        return json.replace(/("(\u[a-zA-Z0-9]{4}|\\[^u]|[^\"])*"\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(match) {
             let cls = 'json-number';
             if (/^"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-string';
             else if (/true|false/.test(match)) cls = 'json-bool';
@@ -595,7 +595,7 @@ def get_deuda(rut_without_dv: str):
             "api_version": VERSION
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Deuda): {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error en FEDRO-API: {str(e)}")
 
 # --- ENDPOINT: Obtener Mensaje por RUT ---
 @app.get("/financial/mensaje/{rut_without_dv}")
@@ -614,7 +614,7 @@ def get_mensaje(rut_without_dv: str):
             "api_version": VERSION
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Mensaje): {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error en FEDRO-API: {str(e)}")
 
 # --- ENDPOINT: Obtener Todos los Datos Financieros por RUT ---
 @app.get("/financial/all/{rut_without_dv}")
