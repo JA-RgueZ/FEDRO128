@@ -3,11 +3,20 @@ import json
 from fastapi import FastAPI, HTTPException
 from google.oauth2 import service_account
 import gspread
+from fastapi.middleware.cors import CORSMiddleware # Import CORSMiddleware
 
 # --- METADATA DEL PROYECTO ---
 # Usamos VERSION para trazabilidad en los logs de Railway
 VERSION = "1.0.5-stable"
 app = FastAPI(title="FEDRO API", version=VERSION)
+
+# --- Configuración CORS ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Permite todos los orígenes. En producción, especifica tu dominio.
+    allow_methods=["*"],  # Permite todos los métodos (GET, POST, PUT, DELETE, etc.)
+    allow_headers=["*"],  # Permite todas las cabeceras
+)
 
 # --- CAPA DE CONFIANZA: IDENTIDAD DE DATOS (CUENTA FEDRO) ---
 def get_sheets_client():
