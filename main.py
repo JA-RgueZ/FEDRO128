@@ -4,8 +4,8 @@
   "metadata": {
     "colab": {
       "provenance": [],
-      "authorship_tag": "ABX9TyO4ujLwyngDLHZlz+xkRsrO",
-
+      "authorship_tag": "ABX9TyN6NH6Bw114V5IEGP+91/UV",
+      "include_colab_link": true
     },
     "kernelspec": {
       "name": "python3",
@@ -37,7 +37,7 @@
         "\n",
         "# --- METADATA DEL PROYECTO ---\n",
         "# Usamos VERSION para trazabilidad en los logs de Railway\n",
-        "VERSION = \"1.0.4-stable\"\n",
+        "VERSION = \"1.0.5-stable\"\n",
         "app = FastAPI(title=\"FEDRO API\", version=VERSION)\n",
         "\n",
         "# --- CAPA DE CONFIANZA: IDENTIDAD DE DATOS (CUENTA FEDRO) ---\n",
@@ -127,6 +127,83 @@
       },
       "execution_count": 3,
       "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 383
+        },
+        "id": "new_cell_2",
+        "outputId": "ce7ae59e-5af3-4eeb-d269-ddf30d72c73f"
+      },
+      "source": [
+        "import nest_asyncio\n",
+        "import uvicorn\n",
+        "from pyngrok import ngrok\n",
+        "import os\n",
+        "import threading\n",
+        "import time\n",
+        "\n",
+        "# Aplicar nest_asyncio para permitir que uvicorn corra dentro del bucle de eventos de Colab\n",
+        "nest_asyncio.apply()\n",
+        "\n",
+        "# Definir el puerto para la aplicación FastAPI\n",
+        "port = 8000\n",
+        "\n",
+        "# Iniciar el túnel de ngrok\n",
+        "try:\n",
+        "    # Asegúrate de que `ngrok` esté autenticado si es necesario (para cuentas gratuitas o personalizadas)\n",
+        "    # Si no tienes un token de autenticación, ngrok podría limitar tus túneles o no funcionar.\n",
+        "    # Puedes obtener uno en ngrok.com y luego ejecutar ngrok.set_auth_token(\"TU_TOKEN_AQUI\")\n",
+        "    public_url = ngrok.connect(port)\n",
+        "    print(f\"Tu aplicación FastAPI está disponible públicamente en: {public_url}\")\n",
+        "except Exception as e:\n",
+        "    print(f\"Error al iniciar el túnel ngrok: {e}\")\n",
+        "    public_url = None\n",
+        "\n",
+        "if public_url:\n",
+        "    # Función para ejecutar Uvicorn en un hilo separado\n",
+        "    def run_uvicorn():\n",
+        "        # Pasamos \"__main__:app\" como string para que Uvicorn busque el objeto 'app'\n",
+        "        # en el contexto global del cuaderno, que es el módulo '__main__'.\n",
+        "        uvicorn.run(\"__main__:app\", host=\"0.0.0.0\", port=port, log_level=\"info\")\n",
+        "\n",
+        "    # Iniciar Uvicorn en un hilo separado para no bloquear el notebook\n",
+        "    thread = threading.Thread(target=run_uvicorn)\n",
+        "    thread.start()\n",
+        "\n",
+        "    print(\"Servidor Uvicorn iniciado en un hilo separado.\")\n",
+        "    print(\"Puedes seguir usando el notebook.\")\n",
+        "else:\n",
+        "    print(\"Servidor Uvicorn no iniciado debido a un error con ngrok.\")"
+      ],
+      "execution_count": 4,
+      "outputs": [
+        {
+          "output_type": "error",
+          "ename": "ModuleNotFoundError",
+          "evalue": "No module named 'pyngrok'",
+          "traceback": [
+            "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+            "\u001b[0;31mModuleNotFoundError\u001b[0m                       Traceback (most recent call last)",
+            "\u001b[0;32m/tmp/ipython-input-3036/2038940030.py\u001b[0m in \u001b[0;36m<cell line: 0>\u001b[0;34m()\u001b[0m\n\u001b[1;32m      1\u001b[0m \u001b[0;32mimport\u001b[0m \u001b[0mnest_asyncio\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      2\u001b[0m \u001b[0;32mimport\u001b[0m \u001b[0muvicorn\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 3\u001b[0;31m \u001b[0;32mfrom\u001b[0m \u001b[0mpyngrok\u001b[0m \u001b[0;32mimport\u001b[0m \u001b[0mngrok\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m      4\u001b[0m \u001b[0;32mimport\u001b[0m \u001b[0mos\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      5\u001b[0m \u001b[0;32mimport\u001b[0m \u001b[0mthreading\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;31mModuleNotFoundError\u001b[0m: No module named 'pyngrok'",
+            "",
+            "\u001b[0;31m---------------------------------------------------------------------------\u001b[0;32m\nNOTE: If your import is failing due to a missing package, you can\nmanually install dependencies using either !pip or !apt.\n\nTo view examples of installing some common dependencies, click the\n\"Open Examples\" button below.\n\u001b[0;31m---------------------------------------------------------------------------\u001b[0m\n"
+          ],
+          "errorDetails": {
+            "actions": [
+              {
+                "action": "open_url",
+                "actionText": "Open Examples",
+                "url": "/notebooks/snippets/importing_libraries.ipynb"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
