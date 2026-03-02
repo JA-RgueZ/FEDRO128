@@ -378,23 +378,29 @@ def _get_row_by_rut_from_sheet(rut_without_dv: str, sheet_name: str):
         # Captura otros errores de gspread o autenticación y los eleva como HTTPException más descriptivo
         raise HTTPException(status_code=500, detail=f"Error al acceder a la fuente de datos '{sheet_name}': {str(e)}")
 
+    print(f"Buscando RUT: {rut_without_dv} en la hoja '{sheet_name}'.") # Debugging line
 
     # Assuming RUT is always the first column (col_values(1))
     rut_column_values = sheet.col_values(1)
 
     found_row_index = -1
+    cleaned_input_rut = rut_without_dv.replace(".", "").split('-')[0].strip() # Ensure input is clean
+
     for i, rut_full_with_dv in enumerate(rut_column_values):
         # Clean and compare RUTs
-        cleaned_rut_in_sheet = rut_full_with_dv.replace(".", "").split('-')[0]
-        cleaned_input_rut = rut_without_dv.replace(".", "").split('-')[0]
+        cleaned_rut_in_sheet = rut_full_with_dv.replace(".", "").split('-')[0].strip()
+
+        print(f"  Comparando '{cleaned_input_rut}' con '{cleaned_rut_in_sheet}' de la fila {i+1}.") # Debugging line
 
         if cleaned_rut_in_sheet == cleaned_input_rut:
             found_row_index = i + 1  # gspread rows are 1-indexed
             break
 
     if found_row_index == -1:
+        print(f"RUT '{rut_without_dv}' no encontrado en la hoja '{sheet_name}'.") # Debugging line
         return None  # No matching record found
 
+    print(f"RUT '{rut_without_dv}' encontrado en la fila {found_row_index} de la hoja '{sheet_name}'.") # Debugging line
     row_data = sheet.row_values(found_row_index)
     return row_data
 
