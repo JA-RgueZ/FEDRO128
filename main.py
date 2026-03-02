@@ -7,7 +7,7 @@ import gspread
 from fastapi.middleware.cors import CORSMiddleware
 
 # --- METADATA DEL PROYECTO ---
-VERSION = "1.1.12-stable" # Versión actualizada
+VERSION = "1.1.13-stable" # Versión actualizada
 app = FastAPI(title="FEDRO API", version=VERSION)
 
 # --- Configuración CORS ---
@@ -296,13 +296,9 @@ TESTER_HTML = r"""<!DOCTYPE html>
 <script>
     const BASE = '';
 
-    // Directly embed the version from the Python variable
-    const API_VERSION = """ + VERSION + r""";
-    document.getElementById('api-version').textContent = API_VERSION;
-
     function syntaxHighlight(json) {
         if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
-        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\\"])*"\\s*:)?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g, function(match) {
+        return json.replace(/("(\u[a-zA-Z0-9]{4}|\\[^u]|[^\\\"])*"\\s*:)?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g, function(match) {
             let cls = 'json-number';
             if (/^"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-string';
             else if (/true|false/.test(match)) cls = 'json-bool';
@@ -428,8 +424,8 @@ def health_check():
 # --- ENDPOINT TESTER HTML ---
 @app.get("/fedro-tester", response_class=HTMLResponse)
 def get_tester():
-    # No more .replace() for version here, as it's handled by JS inside the HTML string
-    return HTMLResponse(content=TESTER_HTML)
+    # Use Python's replace to inject the version number into the HTML
+    return HTMLResponse(content=TESTER_HTML.replace('{api_version_placeholder}', VERSION))
 
 
 # --- ENDPOINT: BÚSQUEDA POR TELÉFONO → PERFIL ---
