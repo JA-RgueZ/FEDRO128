@@ -1,5 +1,6 @@
 import os
 import json
+import re # Import regex module for validation
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from google.oauth2 import service_account
@@ -7,7 +8,7 @@ import gspread
 from fastapi.middleware.cors import CORSMiddleware
 
 # --- METADATA DEL PROYECTO ---
-VERSION = "1.1.18-stable" # Versión actualizada
+VERSION = "1.1.19-stable" # Versión actualizada
 app = FastAPI(title="FEDRO API", version=VERSION)
 
 # --- Configuración CORS ---
@@ -42,8 +43,7 @@ TESTER_HTML = """<!DOCTYPE html>
             background-size: 40px 40px; pointer-events: none; z-index: 0;
         }
         .wrapper { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }
-        header { margin-bottom: 56px; display: flex; align-items: flex-start; gap: 20px; }
-        .logo-badge {
+        header { margin-bottom: 56px; display: flex; align-items: flex-start; gap: 20px; }                                                                                                                                              .logo-badge {
             width: 52px; height: 52px; background: var(--accent); border-radius: 12px;
             display: flex; align-items: center; justify-content: center; flex-shrink: 0;
             font-family: var(--mono); font-size: 11px; font-weight: 700; color: #000;
@@ -55,8 +55,7 @@ TESTER_HTML = """<!DOCTYPE html>
         .header-text p code { color: var(--accent); background: rgba(0,229,160,0.08); padding: 2px 6px; border-radius: 4px; font-size: 11px; }
         .status-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 40px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
         .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 2s ease-in-out infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 20px; overflow: hidden; transition: border-color 0.2s; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }                                                                                                                                                                          .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 20px; overflow: hidden; transition: border-color 0.2s; }
         .card:hover { border-color: #2a3040; }
         .card-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
         .method-badge { font-family: var(--mono); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: rgba(0,112,243,0.15); color: var(--accent2); border: 1px solid rgba(0,112,243,0.25); letter-spacing: 1px; }
@@ -87,8 +86,7 @@ TESTER_HTML = """<!DOCTYPE html>
         pre .json-bool { color: #ff8c69; }
         pre .json-null { color: var(--muted); }
         .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(0,0,0,0.2); border-top-color: #000; border-radius: 50%; animation: spin 0.6s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        footer { margin-top: 60px; text-align: center; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+        @keyframes spin { to { transform: rotate(360deg); } }                                                                                                                                                                                      footer { margin-top: 60px; text-align: center; font-family: var(--mono); font-size: 11px; color: var(--muted); }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
@@ -300,7 +298,7 @@ TESTER_HTML = """<!DOCTYPE html>
     function syntaxHighlight(json) {
         if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
         json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\\\"])*"(\\s*:)?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g, function(match) {
+        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\\"])*"(\\s*:)?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g, function(match) {
             let cls = 'json-number';
             if (/^"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-string';
             else if (/true|false/.test(match)) cls = 'json-bool';
@@ -366,8 +364,19 @@ def get_sheets_client():
     creds = service_account.Credentials.from_service_account_info(info_json, scopes=scopes)
     return gspread.authorize(creds)
 
+def _validate_phone_number(telefono: str):
+    # Basic validation for international phone numbers (e.g., 7 to 15 digits)
+    if not re.fullmatch(r'\d{7,15}', telefono):
+        raise HTTPException(status_code=400, detail="Formato de número de teléfono incorrecto. Debe contener solo dígitos y tener entre 7 y 15 dígitos.")
+
 # --- Helper function to get a row by RUT from a specific worksheet ---
 def _get_row_by_rut_from_sheet(rut_without_dv: str, sheet_name: str):
+    # Validate RUT format before proceeding
+    cleaned_input_rut = rut_without_dv.replace(".", "").strip()
+    # Ensure RUT part before DV contains only digits and is between 1 and 8 digits long
+    if not re.fullmatch(r'\d{1,8}', cleaned_input_rut):
+        raise HTTPException(status_code=400, detail="Formato de RUT incorrecto. Debe contener solo dígitos y el número (sin dígito verificador) debe tener entre 1 y 8 cifras.")
+
     try:
         client = get_sheets_client()
         spreadsheet = client.open("FEDRO128")
@@ -384,7 +393,7 @@ def _get_row_by_rut_from_sheet(rut_without_dv: str, sheet_name: str):
     rut_column_values = sheet.col_values(1)
 
     found_row_index = -1
-    cleaned_input_rut = rut_without_dv.replace(".", "").split('-')[0].strip()
+    # The cleaned_input_rut is already prepared for comparison from the validation step
 
     for i, rut_full_with_dv in enumerate(rut_column_values):
         cleaned_rut_in_sheet = rut_full_with_dv.replace(".", "").split('-')[0].strip()
@@ -427,6 +436,7 @@ def get_tester():
 # --- ENDPOINT: BÚSQUEDA POR TELÉFONO → PERFIL ---
 @app.get("/auth/perfil/{telefono}")
 def get_perfil(telefono: str):
+    _validate_phone_number(telefono) # Add phone number validation
     try:
         client = get_sheets_client()
         spreadsheet = client.open("FEDRO128")
@@ -451,12 +461,16 @@ def get_perfil(telefono: str):
             "api_version": VERSION
         }
     except Exception as e:
+        # Re-raise HTTPException directly if it comes from validation
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API: {str(e)}")
 
 
 # --- ENDPOINT: BÚSQUEDA DE RUT Y DV POR TELÉFONO ---
 @app.get("/auth/rut/{telefono}")
 def get_rut(telefono: str):
+    _validate_phone_number(telefono) # Add phone number validation
     try:
         client = get_sheets_client()
         spreadsheet = client.open("FEDRO128")
@@ -480,6 +494,9 @@ def get_rut(telefono: str):
             "api_version": VERSION
         }
     except Exception as e:
+        # Re-raise HTTPException directly if it comes from validation
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API: {str(e)}")
 
 
@@ -496,6 +513,9 @@ def get_clientall(rut_without_dv: str):
             "api_version": VERSION
         }
     except Exception as e:
+        # Re-raise HTTPException directly if it comes from validation
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API: {str(e)}")
 
 # --- ENDPOINT: Obtener Membresía Anual por RUT ---
@@ -505,6 +525,8 @@ def get_membresia_anual(rut_without_dv: str):
         row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesoreria")
         if row_data is None:
             return {"identificado": False, "error": "No matching record found in Tesoreria"}
+
+        # Membresía Anual: Columna E (Índice 4)
         membresia_anual_value = row_data[4] if len(row_data) > 4 else "N/A"
         return {
             "identificado": True,
@@ -513,6 +535,8 @@ def get_membresia_anual(rut_without_dv: str):
             "api_version": VERSION
         }
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Membresia Anual): {str(e)}")
 
 # --- ENDPOINT: Obtener Deuda de Arrastre por RUT ---
@@ -522,6 +546,8 @@ def get_deuda_arrastre(rut_without_dv: str):
         row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesoreria")
         if row_data is None:
             return {"identificado": False, "error": "No matching record found in Tesoreria"}
+
+        # Deuda de arrastre 2024: Columna G (Índice 6)
         deuda_arrastre_value = row_data[6] if len(row_data) > 6 else "N/A"
         return {
             "identificado": True,
@@ -530,6 +556,8 @@ def get_deuda_arrastre(rut_without_dv: str):
             "api_version": VERSION
         }
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Deuda Arrastre): {str(e)}")
 
 # --- ENDPOINT: Obtener Cuota Anual por RUT ---
@@ -539,6 +567,8 @@ def get_cuota_anual(rut_without_dv: str):
         row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesoreria")
         if row_data is None:
             return {"identificado": False, "error": "No matching record found in Tesoreria"}
+
+        # Cuota anual: Columna I (Índice 8)
         cuota_anual_value = row_data[8] if len(row_data) > 8 else "N/A"
         return {
             "identificado": True,
@@ -547,6 +577,8 @@ def get_cuota_anual(rut_without_dv: str):
             "api_version": VERSION
         }
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Cuota Anual): {str(e)}")
 
 # --- ENDPOINT: Obtener Pagado a la Fecha por RUT ---
@@ -556,6 +588,8 @@ def get_pagado_a_la_fecha(rut_without_dv: str):
         row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesoreria")
         if row_data is None:
             return {"identificado": False, "error": "No matching record found in Tesoreria"}
+
+        # Pagado a la fecha: Columna K (Índice 10)
         pagado_a_la_fecha_value = row_data[10] if len(row_data) > 10 else "N/A"
         return {
             "identificado": True,
@@ -564,6 +598,8 @@ def get_pagado_a_la_fecha(rut_without_dv: str):
             "api_version": VERSION
         }
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Pagado a la Fecha): {str(e)}")
 
 # --- ENDPOINT: Obtener Deuda por RUT ---
@@ -573,6 +609,8 @@ def get_deuda(rut_without_dv: str):
         row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesoreria")
         if row_data is None:
             return {"identificado": False, "error": "No matching record found in Tesoreria"}
+
+        # Deuda: Columna S (Índice 18)
         deuda_value = row_data[18] if len(row_data) > 18 else "N/A"
         return {
             "identificado": True,
@@ -581,6 +619,8 @@ def get_deuda(rut_without_dv: str):
             "api_version": VERSION
         }
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API: {str(e)}")
 
 # --- ENDPOINT: Obtener Mensaje por RUT ---
@@ -590,6 +630,8 @@ def get_mensaje(rut_without_dv: str):
         row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesoreria")
         if row_data is None:
             return {"identificado": False, "error": "No matching record found in Tesoreria"}
+
+        # Mensaje: Columna T (Índice 19)
         mensaje_value = row_data[19] if len(row_data) > 19 else "N/A"
         return {
             "identificado": True,
@@ -598,6 +640,8 @@ def get_mensaje(rut_without_dv: str):
             "api_version": VERSION
         }
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API: {str(e)}")
 
 # --- ENDPOINT: Obtener Todos los Datos Financieros por RUT ---
@@ -627,4 +671,6 @@ def get_financial_all(rut_without_dv: str):
             "api_version": VERSION
         }
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Consolidado Financiero): {str(e)}")
