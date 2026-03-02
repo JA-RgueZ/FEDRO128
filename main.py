@@ -241,7 +241,7 @@ def health_check():
 
 
 # --- ENDPOINT TESTER HTML ---
-@app.get("/tester", response_class=HTMLResponse)
+@app.get("/fedro-tester", response_class=HTMLResponse)
 def get_tester():
     return HTMLResponse(content=TESTER_HTML)
 
