@@ -7,7 +7,7 @@ import gspread
 from fastapi.middleware.cors import CORSMiddleware
 
 # --- METADATA DEL PROYECTO ---
-VERSION = "1.1.2-stable"
+VERSION = "1.1.3-stable"
 app = FastAPI(title="FEDRO API", version=VERSION)
 
 # --- Configuración CORS ---
