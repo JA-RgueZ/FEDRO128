@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware # Import CORSMiddleware
 
 # --- METADATA DEL PROYECTO ---
 # Usamos VERSION para trazabilidad en los logs de Railway
-VERSION = "1.0.5-stable"
+VERSION = "1.1.1-stable"
 app = FastAPI(title="FEDRO API", version=VERSION)
 
 # --- Configuración CORS ---
