@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException
 from google.oauth2 import service_account
 import gspread
 from fastapi.middleware.cors import CORSMiddleware # Import CORSMiddleware
+from fastapi.responses import FileResponse # Import FileResponse
 
 # --- METADATA DEL PROYECTO ---
 # Usamos VERSION para trazabilidad en los logs de Railway
@@ -182,3 +183,8 @@ def get_clientall(rut_without_dv: str):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API: {str(e)}")
+
+# --- ENDPOINT para servir el HTML Tester ---
+@app.get("/tester")
+def get_tester():
+    return FileResponse("tester.html")
