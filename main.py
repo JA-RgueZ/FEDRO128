@@ -8,7 +8,7 @@ import gspread
 from fastapi.middleware.cors import CORSMiddleware
 
 # --- METADATA DEL PROYECTO ---
-VERSION = "1.1.26-stable" # Versión actualizada para asegurar un cambio detectable
+VERSION = "1.1.29-stable" # Versión actualizada para asegurar un cambio detectable
 app = FastAPI(title="FEDRO API", version=VERSION)
 
 # --- Configuración CORS ---
@@ -20,7 +20,7 @@ app.add_middleware(
 )
 
 # --- HTML TESTER INCRUSTADO ---
-TESTER_HTML = """<!DOCTYPE html>
+TESTER_HTML = r"""<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -293,6 +293,58 @@ TESTER_HTML = """<!DOCTYPE html>
         </div>
     </div>
 
+    <!-- NUEVOS ENDPOINTS DE BIBLIOTECA -->
+    <div class="card">
+        <div class="card-header">
+            <span class="method-badge">GET</span>
+            <span class="endpoint-path">/library/list_files</span>
+        </div>
+        <div class="card-body">
+            <button onclick="listFiles(this)"><span>&#8594;</span> Listar Todos los Archivos</button>
+            <div class="result-box" id="boxListFiles">
+                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusListFiles"></span></div>
+                <div class="result-body"><pre id="resultListFiles"></pre></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="method-badge">GET</span>
+            <span class="endpoint-path">/library/get_file_id/<span class="param">{file_name}</span></span>
+        </div>
+        <div class="card-body">
+            <label for="fileNameGetId">Nombre del Archivo</label>
+            <div class="input-row">
+                <input type="text" id="fileNameGetId" placeholder="Mi Documento Importante">
+                <button onclick="getFileId(this)"><span>&#8594;</span> Obtener ID del Archivo</button>
+            </div>
+            <div class="result-box" id="boxGetFileId">
+                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusGetFileId"></span></div>
+                <div class="result-body"><pre id="resultGetFileId"></pre></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="method-badge">GET</span>
+            <span class="endpoint-path">/library/search_files/<span class="param">{search_key}</span></span>
+        </div>
+        <div class="card-body">
+            <label for="searchKeyFiles">Palabra clave de B&uacute;squeda</label>
+            <div class="input-row">
+                <input type="text" id="searchKeyFiles" placeholder="Reporte">
+                <button onclick="searchFiles(this)"><span>&#8594;</span> Buscar Archivos</button>
+            </div>
+            <div class="result-box" id="boxSearchFiles">
+                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusSearchFiles"></span></div>
+                <div class="result-body"><pre id="resultSearchFiles"></pre></div>
+            </div>
+        </div>
+    </div>
+
+
     <footer>FEDRO 128 &middot; API TESTER &middot; RAILWAY PRODUCTION</footer>
 </div>
 <script>
@@ -301,7 +353,7 @@ TESTER_HTML = """<!DOCTYPE html>
     function syntaxHighlight(json) {
         if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
         json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        return json.replace(/("(\u[a-zA-Z0-9]{4}|\\[^u]|[^\"])*"(\s*)?:?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(match) {
+        return json.replace(/("(\u[a-zA-Z0-9]{4}|\\[^u]|[^\"])*"(\s*)?:?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g, function(match) {
             let cls = 'json-number';
             if (/^"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-string';
             else if (/true|false/.test(match)) cls = 'json-bool';
@@ -311,8 +363,8 @@ TESTER_HTML = """<!DOCTYPE html>
     }
 
     async function callApi(path, inputId, boxId, preId, statusId, btn, label) {
-        const val = document.getElementById(inputId).value.trim();
-        if (!val) { alert('Ingresa un valor primero.'); return; }
+        const val = inputId ? document.getElementById(inputId).value.trim() : '';
+        if (inputId && !val) { alert('Ingresa un valor primero.'); return; }
         const box = document.getElementById(boxId);
         const pre = document.getElementById(preId);
         const statusEl = document.getElementById(statusId);
@@ -323,7 +375,7 @@ TESTER_HTML = """<!DOCTYPE html>
         statusEl.textContent = '';
         statusEl.className = 'status-code';
         try {
-            const url = BASE + path.replace('{p}', encodeURIComponent(val));
+            const url = BASE + (inputId ? path.replace('{p}', encodeURIComponent(val)) : path);
             const res = await fetch(url);
             const data = await res.json();
             statusEl.textContent = res.status;
@@ -339,7 +391,7 @@ TESTER_HTML = """<!DOCTYPE html>
         }
     }
 
-    function getPerfil(btn)         { callApi('/auth/perfil/{p}',               'telefonoPerfil',   'boxPerfil',       'resultPerfil',       'statusPerfil',       btn, 'Obtener Perfil'); } 
+    function getPerfil(btn)         { callApi('/auth/perfil/{p}',               'telefonoPerfil',   'boxPerfil',       'resultPerfil',       'statusPerfil',       btn, 'Obtener Perfil'); }
     function getRut(btn)            { callApi('/auth/rut/{p}',                  'telefonoRut',      'boxRut',          'resultRut',          'statusRut',          btn, 'Obtener RUT'); }
     function getClientall(btn)      { callApi('/auth/clientall/{p}',            'rutClientall',     'boxClientall',    'resultClientall',    'statusClientall',    btn, 'Obtener Cliente'); }
     function getMembresiaAnual(btn) { callApi('/financial/membresia_anual/{p}', 'rutMembresia',     'boxMembresia',    'resultMembresia',    'statusMembresia',    btn, 'Membres&iacute;a Anual'); }
@@ -349,6 +401,10 @@ TESTER_HTML = """<!DOCTYPE html>
     function getDeuda(btn)          { callApi('/financial/deuda/{p}',           'rutDeuda',         'boxDeuda',        'resultDeuda',        'statusDeuda',        btn, 'Obtener Deuda'); }
     function getMensaje(btn)        { callApi('/financial/mensaje/{p}',         'rutMensaje',       'boxMensaje',      'resultMensaje',      'statusMensaje',      btn, 'Obtener Mensaje'); }
     function getFinancialAll(btn)   { callApi('/financial/all/{p}',             'rutFinancialAll',  'boxFinancialAll', 'resultFinancialAll', 'statusFinancialAll', btn, 'Obtener Todo Financiero'); }
+    // Nuevos endpoints de Biblioteca
+    function listFiles(btn)         { callApi('/library/list_files',            null,               'boxListFiles',    'resultListFiles',    'statusListFiles',    btn, 'Listar Todos los Archivos'); }
+    function getFileId(btn)         { callApi('/library/get_file_id/{p}',       'fileNameGetId',    'boxGetFileId',    'resultGetFileId',    'statusGetFileId',    btn, 'Obtener ID del Archivo'); }
+    function searchFiles(btn)       { callApi('/library/search_files/{p}',      'searchKeyFiles',   'boxSearchFiles',  'resultSearchFiles',  'statusSearchFiles',  btn, 'Buscar Archivos'); }
 </script>
 </body>
 </html>"""
@@ -413,8 +469,6 @@ def _get_row_by_rut_from_sheet(rut_without_dv: str, sheet_name: str):
             print(f"RUT '{rut_without_dv}' no encontrado en la hoja '{sheet_name}'.")
         return None
 
-    if sheet_name == "Tesoreria":
-        print(f"RUT '{rut_without_dv}' encontrado en la fila {found_row_index} de la hoja '{sheet_name}'.")
     row_data = sheet.row_values(found_row_index)
     return row_data
 
@@ -677,3 +731,62 @@ def get_financial_all(rut_without_dv: str):
         if isinstance(e, HTTPException):
             raise e
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Consolidado Financiero): {str(e)}")
+
+
+# --- ENDPOINTS DE BIBLIOTECA ---
+@app.get("/library/list_files")
+def list_all_drive_files():
+    try:
+        client = get_sheets_client()
+        # Use the drive attribute of the gspread client to access Google Drive API
+        # List all files, specify fields to retrieve only id and name for efficiency
+        results = client.drive.files().list(fields="files(id, name)").execute()
+        items = results.get('files', [])
+        
+        files_list = []
+        if not items:
+            return {"status": "success", "message": "No files found.", "files": []}
+        else:
+            for item in items:
+                files_list.append({"id": item['id'], "name": item['name']})
+            return {"status": "success", "total_files": len(files_list), "files": files_list}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al listar archivos de Drive: {str(e)}")
+
+@app.get("/library/get_file_id/{file_name}")
+def get_drive_file_id(file_name: str):
+    try:
+        client = get_sheets_client()
+        # Search for a file with the exact name
+        # 'trashed = false' excludes files in trash
+        query = f"name = '{file_name}' and trashed = false"
+        results = client.drive.files().list(q=query, fields="files(id, name)").execute()
+        items = results.get('files', [])
+        
+        if not items:
+            return {"status": "not found", "file_name": file_name, "file_id": None, "message": "File not found."}
+        else:
+            # Assuming the first result is the desired one if multiple files have the same name
+            file_info = items[0]
+            return {"status": "success", "file_name": file_info['name'], "file_id": file_info['id'], "message": "File found."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al buscar ID del archivo en Drive: {str(e)}")
+
+@app.get("/library/search_files/{search_key}")
+def search_drive_files_by_name(search_key: str):
+    try:
+        client = get_sheets_client()
+        # Search for files where the name contains the search_key
+        query = f"name contains '{search_key}' and trashed = false"
+        results = client.drive.files().list(q=query, fields="files(id, name)").execute()
+        items = results.get('files', [])
+        
+        matching_files = []
+        if not items:
+            return {"status": "success", "search_key": search_key, "total_matches": 0, "files": [], "message": "No files matching the search key found."}
+        else:
+            for item in items:
+                matching_files.append({"id": item['id'], "name": item['name']})
+            return {"status": "success", "search_key": search_key, "total_matches": len(matching_files), "files": matching_files}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al buscar archivos en Drive: {str(e)}")
