@@ -1,53 +1,53 @@
 import os
 import json
 from fastapi import FastAPI, HTTPException
-import google.generativeai as genai
 from google.oauth2 import service_account
 import gspread
 
 app = FastAPI(title="FEDRO API v1.0")
 
-# --- CAPA DE CONFIANZA ---
-def get_infra():
-    # 1. Configurar IA (Cuenta Personal)
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if api_key:
-        genai.configure(api_key=api_key)
+# --- CONFIGURACIÓN DE IDENTIDAD DE DATOS ---
+def get_sheets_client():
+    # Railway inyectará el JSON de la cuenta FEDRO aquí
+    creds_json = os.environ.get("GOOGLE_CREDS_JSON")
+    if not creds_json:
+        raise ValueError("Error: Variable GOOGLE_CREDS_JSON no encontrada.")
     
-    # 2. Configurar Datos (Cuenta FEDRO)
-    creds_raw = os.environ.get("GOOGLE_CREDS_JSON")
-    if not creds_raw:
-        return None, None
-    
-    info_json = json.loads(creds_raw)
+    info_json = json.loads(creds_json)
     creds = service_account.Credentials.from_service_account_info(
         info_json, 
-        scopes=['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+        scopes=['https://www.googleapis.com/auth/spreadsheets']
     )
-    client = gspread.authorize(creds)
-    return genai, client
+    return gspread.authorize(creds)
 
-@app.get("/")
-def health_check():
-    ai, data = get_infra()
-    return {
-        "status": "FEDRO Online",
-        "ia_connected": ai is not None,
-        "data_connected": data is not None
-    }
-
-# Endpoint de Identidad (Fase 2, Punto 2)
+# --- ENDPOINT DE BÚSQUEDA (ETAPA 2) ---
 @app.get("/auth/perfil/{telefono}")
 def get_perfil(telefono: str):
-    _, gc = get_infra()
-    if not gc:
-        raise HTTPException(status_code=500, detail="Credenciales de datos no configuradas")
-    
-    # Aquí irá la lógica para buscar en Google Sheets
-    # Por ahora devolvemos un esquema de prueba (Mock)
-    return {
-        "identificado": True,
-        "telefono": telefono,
-        "rol": "Buscando en Sheets...",
-        "mensaje": "V1.0 MVP activa"
-    }
+    try:
+        client = get_sheets_client()
+        
+        # 1. Abre el archivo por su nombre
+        spreadsheet = client.open("FEDRO128")
+        
+        # 2. Selecciona específicamente la pestaña "Cuadro"
+        sheet = spreadsheet.worksheet("Cuadro")
+        
+        # 3. Busca el teléfono (asegúrate que el formato en la sheet sea texto o coincida)
+        cell = sheet.find(telefono)
+        
+        if not cell:
+            return {"identificado": False, "error": "QH no encontrado"}
+
+        # 4. Extraer datos del QH (Asumiendo: A=RUT, B=Nombre, C=Celular, D=Grado)
+        row = sheet.row_values(cell.row)
+        
+        return {
+            "identificado": True,
+            "rut": row[0],
+            "nombre_completo": row[1],
+            "grado": int(row[3]),
+            "status": "Regular"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
