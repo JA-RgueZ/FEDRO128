@@ -19,7 +19,7 @@ app.add_middleware(
 )
 
 # --- HTML TESTER INCRUSTADO ---
-TESTER_HTML = """<!DOCTYPE html>
+TESTER_HTML = r"""<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
