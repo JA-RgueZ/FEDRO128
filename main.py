@@ -7,7 +7,7 @@ import gspread
 from fastapi.middleware.cors import CORSMiddleware
 
 # --- METADATA DEL PROYECTO ---
-VERSION = "1.1.17-stable" # Versión actualizada
+VERSION = "1.1.18-stable" # Versión actualizada
 app = FastAPI(title="FEDRO API", version=VERSION)
 
 # --- Configuración CORS ---
@@ -19,7 +19,7 @@ app.add_middleware(
 )
 
 # --- HTML TESTER INCRUSTADO ---
-TESTER_HTML = r"""<!DOCTYPE html>
+TESTER_HTML = """<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -273,7 +273,7 @@ TESTER_HTML = r"""<!DOCTYPE html>
         </div>
     </div>
 
-    <!-- NUEVO ENDPOINT CONSOLIDADO -->
+    <!-- ENDPOINT CONSOLIDADO -->
     <div class="card">
         <div class="card-header">
             <span class="method-badge">GET</span>
@@ -299,7 +299,8 @@ TESTER_HTML = r"""<!DOCTYPE html>
 
     function syntaxHighlight(json) {
         if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
-        return json.replace(/("(\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"\\s*:)?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\\-]?\\d+)?)/g, function(match) {
+        json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\\\"])*"(\\s*:)?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g, function(match) {
             let cls = 'json-number';
             if (/^"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-string';
             else if (/true|false/.test(match)) cls = 'json-bool';
@@ -337,17 +338,16 @@ TESTER_HTML = r"""<!DOCTYPE html>
         }
     }
 
-    function getPerfil(btn)    { callApi('/auth/perfil/{p}',   'telefonoPerfil', 'boxPerfil',   'resultPerfil',   'statusPerfil',   btn, 'Obtener Perfil'); }
-    function getRut(btn)       { callApi('/auth/rut/{p}',      'telefonoRut',    'boxRut',      'resultRut',      'statusRut',      btn, 'Obtener RUT'); }
-    function getClientall(btn) { callApi('/auth/clientall/{p}','rutClientall',   'boxClientall','resultClientall','statusClientall',btn, 'Obtener Cliente'); }
-    // Funciones para los nuevos endpoints financieros
-    function getMembresiaAnual(btn)  { callApi('/financial/membresia_anual/{p}', 'rutMembresia',   'boxMembresia',   'resultMembresia',   'statusMembresia',   btn, 'Membres&iacute;a Anual'); }
-    function getDeudaArrastre(btn) { callApi('/financial/deuda_arrastre/{p}', 'rutDeudaArrastre', 'boxDeudaArrastre', 'resultDeudaArrastre', 'statusDeudaArrastre', btn, 'Deuda de Arrastre'); }
-    function getCuotaAnual(btn)    { callApi('/financial/cuota_anual/{p}',    'rutCuotaAnual',    'boxCuotaAnual',    'resultCuotaAnual',    'statusCuotaAnual',    btn, 'Cuota Anual'); }
-    function getPagadoALaFecha(btn) { callApi('/financial/pagado_a_la_fecha/{p}', 'rutPagadoFecha',   'boxPagadoFecha',   'resultPagadoFecha',   'statusPagadoFecha',   btn, 'Pagado a la Fecha'); }
-    function getDeuda(btn)         { callApi('/financial/deuda/{p}',          'rutDeuda',         'boxDeuda',         'resultDeuda',         'statusDeuda',         btn, 'Obtener Deuda'); }
-    function getMensaje(btn)       { callApi('/financial/mensaje/{p}',        'rutMensaje',       'boxMensaje',       'resultMensaje',       'statusMensaje',       btn, 'Obtener Mensaje'); }
-    function getFinancialAll(btn)  { callApi('/financial/all/{p}',            'rutFinancialAll',  'boxFinancialAll',  'resultFinancialAll',  'statusFinancialAll',  btn, 'Obtener Todo Financiero'); }
+    function getPerfil(btn)         { callApi('/auth/perfil/{p}',               'telefonoPerfil',   'boxPerfil',       'resultPerfil',       'statusPerfil',       btn, 'Obtener Perfil'); }
+    function getRut(btn)            { callApi('/auth/rut/{p}',                  'telefonoRut',      'boxRut',          'resultRut',          'statusRut',          btn, 'Obtener RUT'); }
+    function getClientall(btn)      { callApi('/auth/clientall/{p}',            'rutClientall',     'boxClientall',    'resultClientall',    'statusClientall',    btn, 'Obtener Cliente'); }
+    function getMembresiaAnual(btn) { callApi('/financial/membresia_anual/{p}', 'rutMembresia',     'boxMembresia',    'resultMembresia',    'statusMembresia',    btn, 'Membres&iacute;a Anual'); }
+    function getDeudaArrastre(btn)  { callApi('/financial/deuda_arrastre/{p}',  'rutDeudaArrastre', 'boxDeudaArrastre','resultDeudaArrastre','statusDeudaArrastre',btn, 'Deuda de Arrastre'); }
+    function getCuotaAnual(btn)     { callApi('/financial/cuota_anual/{p}',     'rutCuotaAnual',    'boxCuotaAnual',   'resultCuotaAnual',   'statusCuotaAnual',   btn, 'Cuota Anual'); }
+    function getPagadoALaFecha(btn) { callApi('/financial/pagado_a_la_fecha/{p}','rutPagadoFecha',  'boxPagadoFecha',  'resultPagadoFecha',  'statusPagadoFecha',  btn, 'Pagado a la Fecha'); }
+    function getDeuda(btn)          { callApi('/financial/deuda/{p}',           'rutDeuda',         'boxDeuda',        'resultDeuda',        'statusDeuda',        btn, 'Obtener Deuda'); }
+    function getMensaje(btn)        { callApi('/financial/mensaje/{p}',         'rutMensaje',       'boxMensaje',      'resultMensaje',      'statusMensaje',      btn, 'Obtener Mensaje'); }
+    function getFinancialAll(btn)   { callApi('/financial/all/{p}',             'rutFinancialAll',  'boxFinancialAll', 'resultFinancialAll', 'statusFinancialAll', btn, 'Obtener Todo Financiero'); }
 </script>
 </body>
 </html>"""
@@ -373,40 +373,36 @@ def _get_row_by_rut_from_sheet(rut_without_dv: str, sheet_name: str):
         spreadsheet = client.open("FEDRO128")
         sheet = spreadsheet.worksheet(sheet_name)
     except gspread.exceptions.WorksheetNotFound:
-        # Si la hoja no se encuentra, retornamos None para que el endpoint pueda manejarlo específicamente
         print(f"Advertencia: La hoja de cálculo '{sheet_name}' no fue encontrada.")
         return None
     except Exception as e:
-        # Captura otros errores de gspread o autenticación y los eleva como HTTPException más descriptivo
         raise HTTPException(status_code=500, detail=f"Error al acceder a la fuente de datos '{sheet_name}': {str(e)}")
 
     if sheet_name == "Tesoreria":
-        print(f"Buscando RUT: {rut_without_dv} en la hoja '{sheet_name}'.") # Debugging line
+        print(f"Buscando RUT: {rut_without_dv} en la hoja '{sheet_name}'.")
 
-    # Assuming RUT is always the first column (col_values(1))
     rut_column_values = sheet.col_values(1)
 
     found_row_index = -1
-    cleaned_input_rut = rut_without_dv.replace(".", "").split('-')[0].strip() # Ensure input is clean
+    cleaned_input_rut = rut_without_dv.replace(".", "").split('-')[0].strip()
 
     for i, rut_full_with_dv in enumerate(rut_column_values):
-        # Clean and compare RUTs
         cleaned_rut_in_sheet = rut_full_with_dv.replace(".", "").split('-')[0].strip()
 
         if sheet_name == "Tesoreria":
-            print(f"  Comparando '{cleaned_input_rut}' con '{cleaned_rut_in_sheet}' de la fila {i+1}.") # Debugging line
+            print(f"  Comparando '{cleaned_input_rut}' con '{cleaned_rut_in_sheet}' de la fila {i+1}.")
 
         if cleaned_rut_in_sheet == cleaned_input_rut:
-            found_row_index = i + 1  # gspread rows are 1-indexed
+            found_row_index = i + 1
             break
 
     if found_row_index == -1:
         if sheet_name == "Tesoreria":
-            print(f"RUT '{rut_without_dv}' no encontrado en la hoja '{sheet_name}'.") # Debugging line
-        return None  # No matching record found
+            print(f"RUT '{rut_without_dv}' no encontrado en la hoja '{sheet_name}'.")
+        return None
 
     if sheet_name == "Tesoreria":
-        print(f"RUT '{rut_without_dv}' encontrado en la fila {found_row_index} de la hoja '{sheet_name}'.") # Debugging line
+        print(f"RUT '{rut_without_dv}' encontrado en la fila {found_row_index} de la hoja '{sheet_name}'.")
     row_data = sheet.row_values(found_row_index)
     return row_data
 
@@ -425,7 +421,6 @@ def health_check():
 # --- ENDPOINT TESTER HTML ---
 @app.get("/fedro-tester", response_class=HTMLResponse)
 def get_tester():
-    # Use Python's replace to inject the version number into the HTML
     return HTMLResponse(content=TESTER_HTML.replace('{api_version_placeholder}', VERSION))
 
 
@@ -510,8 +505,6 @@ def get_membresia_anual(rut_without_dv: str):
         row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesoreria")
         if row_data is None:
             return {"identificado": False, "error": "No matching record found in Tesoreria"}
-
-        # Membresía Anual: Columna E (Índice 4)
         membresia_anual_value = row_data[4] if len(row_data) > 4 else "N/A"
         return {
             "identificado": True,
@@ -529,8 +522,6 @@ def get_deuda_arrastre(rut_without_dv: str):
         row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesoreria")
         if row_data is None:
             return {"identificado": False, "error": "No matching record found in Tesoreria"}
-
-        # Deuda de arrastre 2024: Columna G (Índice 6)
         deuda_arrastre_value = row_data[6] if len(row_data) > 6 else "N/A"
         return {
             "identificado": True,
@@ -548,8 +539,6 @@ def get_cuota_anual(rut_without_dv: str):
         row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesoreria")
         if row_data is None:
             return {"identificado": False, "error": "No matching record found in Tesoreria"}
-
-        # Cuota anual: Columna I (Índice 8)
         cuota_anual_value = row_data[8] if len(row_data) > 8 else "N/A"
         return {
             "identificado": True,
@@ -567,8 +556,6 @@ def get_pagado_a_la_fecha(rut_without_dv: str):
         row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesoreria")
         if row_data is None:
             return {"identificado": False, "error": "No matching record found in Tesoreria"}
-
-        # Pagado a la fecha: Columna K (Índice 10)
         pagado_a_la_fecha_value = row_data[10] if len(row_data) > 10 else "N/A"
         return {
             "identificado": True,
@@ -586,8 +573,6 @@ def get_deuda(rut_without_dv: str):
         row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesoreria")
         if row_data is None:
             return {"identificado": False, "error": "No matching record found in Tesoreria"}
-
-        # Deuda: Columna S (Índice 18)
         deuda_value = row_data[18] if len(row_data) > 18 else "N/A"
         return {
             "identificado": True,
@@ -605,8 +590,6 @@ def get_mensaje(rut_without_dv: str):
         row_data = _get_row_by_rut_from_sheet(rut_without_dv, "Tesoreria")
         if row_data is None:
             return {"identificado": False, "error": "No matching record found in Tesoreria"}
-
-        # Mensaje: Columna T (Índice 19)
         mensaje_value = row_data[19] if len(row_data) > 19 else "N/A"
         return {
             "identificado": True,
@@ -625,13 +608,12 @@ def get_financial_all(rut_without_dv: str):
         if row_data is None:
             return {"identificado": False, "error": "No matching record found in Tesoreria"}
 
-        # Extraer todos los valores según los índices proporcionados
-        membresia_anual_value = row_data[4] if len(row_data) > 4 else "N/A"     # Columna E (Índice 4)
-        deuda_arrastre_value = row_data[6] if len(row_data) > 6 else "N/A"    # Columna G (Índice 6)
-        cuota_anual_value = row_data[8] if len(row_data) > 8 else "N/A"       # Columna I (Índice 8)
-        pagado_a_la_fecha_value = row_data[10] if len(row_data) > 10 else "N/A" # Columna K (Índice 10)
-        deuda_value = row_data[18] if len(row_data) > 18 else "N/A"           # Columna S (Índice 18)
-        mensaje_value = row_data[19] if len(row_data) > 19 else "N/A"         # Columna T (Índice 19)
+        membresia_anual_value    = row_data[4]  if len(row_data) > 4  else "N/A"
+        deuda_arrastre_value     = row_data[6]  if len(row_data) > 6  else "N/A"
+        cuota_anual_value        = row_data[8]  if len(row_data) > 8  else "N/A"
+        pagado_a_la_fecha_value  = row_data[10] if len(row_data) > 10 else "N/A"
+        deuda_value              = row_data[18] if len(row_data) > 18 else "N/A"
+        mensaje_value            = row_data[19] if len(row_data) > 19 else "N/A"
 
         return {
             "identificado": True,
