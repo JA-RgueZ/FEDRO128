@@ -8,7 +8,7 @@ import gspread
 from fastapi.middleware.cors import CORSMiddleware
 
 # --- METADATA DEL PROYECTO ---
-VERSION = "1.1.23-stable" # Versión actualizada para asegurar un cambio detectable
+VERSION = "1.1.26-stable" # Versión actualizada para asegurar un cambio detectable
 app = FastAPI(title="FEDRO API", version=VERSION)
 
 # --- Configuración CORS ---
@@ -301,7 +301,7 @@ TESTER_HTML = """<!DOCTYPE html>
     function syntaxHighlight(json) {
         if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
         json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\\"])*"(\\s*)?:?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g, function(match) {
+        return json.replace(/("(\u[a-zA-Z0-9]{4}|\\[^u]|[^\"])*"(\s*)?:?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(match) {
             let cls = 'json-number';
             if (/^"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-string';
             else if (/true|false/.test(match)) cls = 'json-bool';
@@ -339,7 +339,7 @@ TESTER_HTML = """<!DOCTYPE html>
         }
     }
 
-    function getPerfil(btn)         { callApi('/auth/perfil/{p}',               'telefonoPerfil',   'boxPerfil',       'resultPerfil',       'statusPerfil',       btn, 'Obtener Perfil'); }
+    function getPerfil(btn)         { callApi('/auth/perfil/{p}',               'telefonoPerfil',   'boxPerfil',       'resultPerfil',       'statusPerfil',       btn, 'Obtener Perfil'); } 
     function getRut(btn)            { callApi('/auth/rut/{p}',                  'telefonoRut',      'boxRut',          'resultRut',          'statusRut',          btn, 'Obtener RUT'); }
     function getClientall(btn)      { callApi('/auth/clientall/{p}',            'rutClientall',     'boxClientall',    'resultClientall',    'statusClientall',    btn, 'Obtener Cliente'); }
     function getMembresiaAnual(btn) { callApi('/financial/membresia_anual/{p}', 'rutMembresia',     'boxMembresia',    'resultMembresia',    'statusMembresia',    btn, 'Membres&iacute;a Anual'); }
