@@ -187,4 +187,6 @@ def get_clientall(rut_without_dv: str):
 # --- ENDPOINT para servir el HTML Tester ---
 @app.get("/tester")
 def get_tester():
-    return FileResponse("tester.html")
+    # Ruta absoluta relativa al archivo main.py
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    return FileResponse(os.path.join(base_dir, "tester.html"))
