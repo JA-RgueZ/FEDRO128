@@ -1,4 +1,3 @@
-%%writefile FEDRO128/main.py
 import os
 import json
 import re # Import regex module for validation
@@ -9,7 +8,7 @@ import gspread
 from fastapi.middleware.cors import CORSMiddleware
 
 # --- METADATA DEL PROYECTO ---
-VERSION = "1.1.29-stable" # Versión actualizada para asegurar un cambio detectable
+VERSION = "1.1.31-stable" # Versión actualizada para asegurar un cambio detectable
 app = FastAPI(title="FEDRO API", version=VERSION)
 
 # --- Configuración CORS ---
