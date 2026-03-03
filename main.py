@@ -1,3 +1,4 @@
+%%writefile FEDRO128/main.py
 import os
 import json
 import re # Import regex module for validation
@@ -353,7 +354,7 @@ TESTER_HTML = r"""<!DOCTYPE html>
     function syntaxHighlight(json) {
         if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
         json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        return json.replace(/("(\u[a-zA-Z0-9]{4}|\\[^u]|[^\"])*"(\s*)?:?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g, function(match) {
+        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^"])*"(\s*)?:?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g, function(match) {
             let cls = 'json-number';
             if (/^"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-string';
             else if (/true|false/.test(match)) cls = 'json-bool';
@@ -470,6 +471,8 @@ def _get_row_by_rut_from_sheet(rut_without_dv: str, sheet_name: str):
         return None
 
     row_data = sheet.row_values(found_row_index)
+    if sheet_name == "Tesoreria":
+        print(f"RUT '{rut_without_dv}' encontrado en la fila {found_row_index} de la hoja '{sheet_name}'.")
     return row_data
 
 
@@ -733,60 +736,79 @@ def get_financial_all(rut_without_dv: str):
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API (Consolidado Financiero): {str(e)}")
 
 
+def _get_biblioteca_folder_id():
+    client = get_sheets_client()
+    # Search for a folder named 'BIBLIOTECA'
+    query = "name = 'BIBLIOTECA' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+    results = client.drive.files().list(q=query, fields="files(id)").execute()
+    items = results.get('files', [])
+    if not items:
+        raise HTTPException(status_code=404, detail="Folder 'BIBLIOTECA' not found in Google Drive.")
+    return items[0]['id']
+
+
 # --- ENDPOINTS DE BIBLIOTECA ---
 @app.get("/library/list_files")
 def list_all_drive_files():
     try:
+        biblioteca_folder_id = _get_biblioteca_folder_id()
         client = get_sheets_client()
-        # Use the drive attribute of the gspread client to access Google Drive API
-        # List all files, specify fields to retrieve only id and name for efficiency
-        results = client.drive.files().list(fields="files(id, name)").execute()
+        # List all files within the 'BIBLIOTECA' folder
+        query = f"'{biblioteca_folder_id}' in parents and trashed = false"
+        results = client.drive.files().list(q=query, fields="files(id, name)").execute()
         items = results.get('files', [])
-        
+
         files_list = []
         if not items:
-            return {"status": "success", "message": "No files found.", "files": []}
+            return {"status": "success", "message": "No files found in BIBLIOTECA folder.", "files": []}
         else:
             for item in items:
                 files_list.append({"id": item['id'], "name": item['name']})
             return {"status": "success", "total_files": len(files_list), "files": files_list}
+    except HTTPException as e:
+        raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al listar archivos de Drive: {str(e)}")
 
 @app.get("/library/get_file_id/{file_name}")
 def get_drive_file_id(file_name: str):
     try:
+        biblioteca_folder_id = _get_biblioteca_folder_id()
         client = get_sheets_client()
-        # Search for a file with the exact name
-        # 'trashed = false' excludes files in trash
-        query = f"name = '{file_name}' and trashed = false"
+        # Search for a file with the exact name within the 'BIBLIOTECA' folder
+        query = f"name = '{file_name}' and '{biblioteca_folder_id}' in parents and trashed = false"
         results = client.drive.files().list(q=query, fields="files(id, name)").execute()
         items = results.get('files', [])
-        
+
         if not items:
-            return {"status": "not found", "file_name": file_name, "file_id": None, "message": "File not found."}
+            return {"status": "not found", "file_name": file_name, "file_id": None, "message": f"File '{file_name}' not found in BIBLIOTECA folder."}
         else:
             # Assuming the first result is the desired one if multiple files have the same name
             file_info = items[0]
             return {"status": "success", "file_name": file_info['name'], "file_id": file_info['id'], "message": "File found."}
+    except HTTPException as e:
+        raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al buscar ID del archivo en Drive: {str(e)}")
 
 @app.get("/library/search_files/{search_key}")
 def search_drive_files_by_name(search_key: str):
     try:
+        biblioteca_folder_id = _get_biblioteca_folder_id()
         client = get_sheets_client()
-        # Search for files where the name contains the search_key
-        query = f"name contains '{search_key}' and trashed = false"
+        # Search for files where the name contains the search_key within the 'BIBLIOTECA' folder
+        query = f"name contains '{search_key}' and '{biblioteca_folder_id}' in parents and trashed = false"
         results = client.drive.files().list(q=query, fields="files(id, name)").execute()
         items = results.get('files', [])
-        
+
         matching_files = []
         if not items:
-            return {"status": "success", "search_key": search_key, "total_matches": 0, "files": [], "message": "No files matching the search key found."}
+            return {"status": "success", "search_key": search_key, "total_matches": 0, "files": [], "message": f"No files matching '{search_key}' found in BIBLIOTECA folder."}
         else:
             for item in items:
                 matching_files.append({"id": item['id'], "name": item['name']})
             return {"status": "success", "search_key": search_key, "total_matches": len(matching_files), "files": matching_files}
+    except HTTPException as e:
+        raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al buscar archivos en Drive: {str(e)}")
