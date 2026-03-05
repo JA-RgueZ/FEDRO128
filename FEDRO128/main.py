@@ -384,6 +384,7 @@ def list_all_drive_files():
      pdb.set_trace()
     try:
         biblioteca_folder_id = _get_biblioteca_folder_id()
+        print(f"BIBLIOTECA folder ID: {biblioteca_folder_id}") 
         client = get_sheets_client()
         # List all files within the 'BIBLIOTECA' folder
         query = f"'{biblioteca_folder_id}' in parents and trashed = false"
