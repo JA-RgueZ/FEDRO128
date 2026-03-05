@@ -8,7 +8,7 @@ import gspread
 from fastapi.middleware.cors import CORSMiddleware
 
 # --- METADATA DEL PROYECTO ---
-VERSION = "1.1.034-stable" # Versión actualizada para asegurar un cambio detectable
+VERSION = "1.02.001" # Versión actualizada para asegurar un cambio detectable
 app = FastAPI(title="FEDRO API", version=VERSION)
 
 # --- Configuración CORS ---
@@ -20,394 +20,7 @@ app.add_middleware(
 )
 
 # --- HTML TESTER INCRUSTADO ---
-TESTER_HTML = r"""<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FEDRO API Tester</title>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #0a0c10; --surface: #111318; --surface2: #181c24;
-            --border: #1e2430; --accent: #00e5a0; --accent2: #0070f3;
-            --accent3: #ff4d6d; --text: #e8e4f0; --muted: #5a6070;
-            --mono: 'Space Mono', monospace; --sans: 'Syne', sans-serif;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
-        body::before {
-            content: ''; position: fixed; inset: 0;
-            background-image: linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
-            background-size: 40px 40px; pointer-events: none; z-index: 0;
-        }
-        .wrapper { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }
-        header { margin-bottom: 56px; display: flex; align-items: flex-start; gap: 20px; }
-        .logo-badge {
-            width: 52px; height: 52px; background: var(--accent); border-radius: 12px;
-            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-            font-family: var(--mono); font-size: 11px; font-weight: 700; color: #000;
-            letter-spacing: -0.5px; line-height: 1.1; text-align: center; padding: 6px;
-        }
-        .header-text h1 { font-size: 32px; font-weight: 800; letter-spacing: -1px; color: var(--text); line-height: 1; margin-bottom: 8px; }
-        .header-text h1 span { color: var(--accent); }
-        .header-text p { font-family: var(--mono); font-size: 12px; color: var(--muted); }
-        .header-text p code { color: var(--accent); background: rgba(0,229,160,0.08); padding: 2px 6px; border-radius: 4px; font-size: 11px; }
-        .status-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 40px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
-        .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 2s ease-in-out infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 20px; overflow: hidden; transition: border-color 0.2s; }
-        .card:hover { border-color: #2a3040; }
-        .card-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
-        .method-badge { font-family: var(--mono); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: rgba(0,112,243,0.15); color: var(--accent2); border: 1px solid rgba(0,112,243,0.25); letter-spacing: 1px; }
-        .endpoint-path { font-family: var(--mono); font-size: 14px; color: var(--text); flex: 1; }
-        .endpoint-path .param { color: var(--accent); }
-        .card-body { padding: 20px 24px 24px; }
-        label { display: block; font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
-        .input-row { display: flex; gap: 10px; align-items: stretch; }
-        input[type="text"] { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; font-family: var(--mono); font-size: 13px; color: var(--text); outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
-        input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,229,160,0.1); }
-        input[type="text"]::placeholder { color: var(--muted); }
-        button { background: var(--accent); color: #000; border: none; border-radius: 10px; padding: 12px 20px; font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; transition: opacity 0.15s, transform 0.1s; white-space: nowrap; display: flex; align-items: center; gap: 7px; }
-        button:hover { opacity: 0.88; }
-        button:active { transform: scale(0.97); }
-        button.loading { opacity: 0.6; pointer-events: none; }
-        .result-box { margin-top: 16px; border-radius: 10px; overflow: hidden; background: var(--surface2); border: 1px solid var(--border); display: none; }
-        .result-box.visible { display: block; }
-        .result-header { padding: 8px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
-        .result-label { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
-        .status-code { font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 5px; }
-        .status-code.ok { background: rgba(0,229,160,0.12); color: var(--accent); }
-        .status-code.error { background: rgba(255,48,70,0.12); color: var(--accent3); }
-        .result-body { padding: 14px; max-height: 300px; overflow-y: auto; }
-        pre { font-family: var(--mono); font-size: 12px; line-height: 1.7; color: #a8b4c8; white-space: pre-wrap; word-break: break-all; }
-        pre .json-key { color: #7ec8e3; }
-        pre .json-string { color: #a8e6b0; }
-        pre .json-number { color: #ffd580; }
-        pre .json-bool { color: #ff8c69; }
-        pre .json-null { color: var(--muted); }
-        .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(0,0,0,0.2); border-top-color: #000; border-radius: 50%; animation: spin 0.6s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        footer { margin-top: 60px; text-align: center; font-family: var(--mono); font-size: 11px; color: var(--muted); }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    </style>
-</head>
-<body>
-<div class="wrapper">
-    <header>
-        <div class="logo-badge">FE<br>DRO</div>
-        <div class="header-text">
-            <h1>FEDRO <span>API</span> Tester</h1>
-            <p>Conectado a: <code>{api_base_url_placeholder}</code></p>
-            <p>API Version: {api_version_placeholder} &middot; Entorno: {api_environment_placeholder}</p>
-        </div>
-    </header>
-    <div class="status-bar">
-        <div class="status-dot"></div>
-        RAILWAY &middot; PRODUCCI&Oacute;N &middot; REST API
-    </div>
-
-    <!-- Auth Endpoints -->
-    <div class="card">
-        <div class="card-header">
-            <span class="method-badge">GET</span>
-            <span class="endpoint-path">/auth/perfil/<span class="param">{telefono}</span></span>
-        </div>
-        <div class="card-body">
-            <label for="telefonoPerfil">Tel&eacute;fono &mdash; formato internacional</label>
-            <div class="input-row">
-                <input type="text" id="telefonoPerfil" placeholder="912345678">
-                <button onclick="getPerfil(this)"><span>&#8594;</span> Obtener Perfil</button>
-            </div>
-            <div class="result-box" id="boxPerfil">
-                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusPerfil"></span></div>
-                <div class="result-body"><pre id="resultPerfil"></pre></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <span class="method-badge">GET</span>
-            <span class="endpoint-path">/auth/rut/<span class="param">{telefono}</span></span>
-        </div>
-        <div class="card-body">
-            <label for="telefonoRut">Tel&eacute;fono &mdash; formato internacional</label>
-            <div class="input-row">
-                <input type="text" id="telefonoRut" placeholder="912345678">
-                <button onclick="getRut(this)"><span>&#8594;</span> Obtener RUT</button>
-            </div>
-            <div class="result-box" id="boxRut">
-                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusRut"></span></div>
-                <div class="result-body"><pre id="resultRut"></pre></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <span class="method-badge">GET</span>
-            <span class="endpoint-path">/auth/clientall/<span class="param">{rut_without_dv}</span></span>
-        </div>
-        <div class="card-body">
-            <label for="rutClientall">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>
-            <div class="input-row">
-                <input type="text" id="rutClientall" placeholder="12345678">
-                <button onclick="getClientall(this)"><span>&#8594;</span> Obtener Cliente</button>
-            </div>
-            <div class="result-box" id="boxClientall">
-                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusClientall"></span></div>
-                <div class="result-body"><pre id="resultClientall"></pre></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Financial Endpoints -->
-    <div class="card">
-        <div class="card-header">
-            <span class="method-badge">GET</span>
-            <span class="endpoint-path">/financial/membresia_anual/<span class="param">{rut_without_dv}</span></span>
-        </div>
-        <div class="card-body">
-            <label for="rutMembresia">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>
-            <div class="input-row">
-                <input type="text" id="rutMembresia" placeholder="12345678">
-                <button onclick="getMembresiaAnual(this)"><span>&#8594;</span> Membres&iacute;a Anual</button>
-            </div>
-            <div class="result-box" id="boxMembresia">
-                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusMembresia"></span></div>
-                <div class="result-body"><pre id="resultMembresia"></pre></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <span class="method-badge">GET</span>
-            <span class="endpoint-path">/financial/deuda_arrastre/<span class="param">{rut_without_dv}</span></span>
-        </div>
-        <div class="card-body">
-            <label for="rutDeudaArrastre">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>
-            <div class="input-row">
-                <input type="text" id="rutDeudaArrastre" placeholder="12345678">
-                <button onclick="getDeudaArrastre(this)"><span>&#8594;</span> Deuda de Arrastre</button>
-            </div>
-            <div class="result-box" id="boxDeudaArrastre">
-                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusDeudaArrastre"></span></div>
-                <div class="result-body"><pre id="resultDeudaArrastre"></pre></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <span class="method-badge">GET</span>
-            <span class="endpoint-path">/financial/cuota_anual/<span class="param">{rut_without_dv}</span></span>
-        </div>
-        <div class="card-body">
-            <label for="rutCuotaAnual">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>
-            <div class="input-row">
-                <input type="text" id="rutCuotaAnual" placeholder="12345678">
-                <button onclick="getCuotaAnual(this)"><span>&#8594;</span> Cuota Anual</button>
-            </div>
-            <div class="result-box" id="boxCuotaAnual">
-                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusCuotaAnual"></span></div>
-                <div class="result-body"><pre id="resultCuotaAnual"></pre></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <span class="method-badge">GET</span>
-            <span class="endpoint-path">/financial/pagado_a_la_fecha/<span class="param">{rut_without_dv}</span></span>
-        </div>
-        <div class="card-body">
-            <label for="rutPagadoFecha">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>
-            <div class="input-row">
-                <input type="text" id="rutPagadoFecha" placeholder="12345678">
-                <button onclick="getPagadoALaFecha(this)"><span>&#8594;</span> Pagado a la Fecha</button>
-            </div>
-            <div class="result-box" id="boxPagadoFecha">
-                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusPagadoFecha"></span></div>
-                <div class="result-body"><pre id="resultPagadoFecha"></pre></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <span class="method-badge">GET</span>
-            <span class="endpoint-path">/financial/deuda/<span class="param">{rut_without_dv}</span></span>
-        </div>
-        <div class="card-body">
-            <label for="rutDeuda">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>
-            <div class="input-row">
-                <input type="text" id="rutDeuda" placeholder="12345678">
-                <button onclick="getDeuda(this)"><span>&#8594;</span> Obtener Deuda</button>
-            </div>
-            <div class="result-box" id="boxDeuda">
-                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusDeuda"></span></div>
-                <div class="result-body"><pre id="resultDeuda"></pre></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <span class="method-badge">GET</span>
-            <span class="endpoint-path">/financial/mensaje/<span class="param">{rut_without_dv}</span></span>
-        </div>
-        <div class="card-body">
-            <label for="rutMensaje">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>
-            <div class="input-row">
-                <input type="text" id="rutMensaje" placeholder="12345678">
-                <button onclick="getMensaje(this)"><span>&#8594;</span> Obtener Mensaje</button>
-            </div>
-            <div class="result-box" id="boxMensaje">
-                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusMensaje"></span></div>
-                <div class="result-body"><pre id="resultMensaje"></pre></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ENDPOINT CONSOLIDADO -->
-    <div class="card">
-        <div class="card-header">
-            <span class="method-badge">GET</span>
-            <span class="endpoint-path">/financial/all/<span class="param">{rut_without_dv}</span></span>
-        </div>
-        <div class="card-body">
-            <label for="rutFinancialAll">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>
-            <div class="input-row">
-                <input type="text" id="rutFinancialAll" placeholder="12345678">
-                <button onclick="getFinancialAll(this)"><span>&#8594;</span> Obtener Todo Financiero</button>
-            </div>
-            <div class="result-box" id="boxFinancialAll">
-                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusFinancialAll"></span></div>
-                <div class="result-body"><pre id="resultFinancialAll"></pre></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- NUEVOS ENDPOINTS DE BIBLIOTECA -->
-    <div class="card">
-        <div class="card-header">
-            <span class="method-badge">GET</span>
-            <span class="endpoint-path">/library/list_files</span>
-        </div>
-        <div class="card-body">
-            <button onclick="listFiles(this)"><span>&#8594;</span> Listar Todos los Archivos</button>
-            <div class="result-box" id="boxListFiles">
-                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusListFiles"></span></div>
-                <div class="result-body"><pre id="resultListFiles"></pre></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <span class="method-badge">GET</span>
-            <span class="endpoint-path">/library/get_file_id/<span class="param">{file_name}</span></span>
-        </div>
-        <div class="card-body">
-            <label for="fileNameGetId">Nombre del Archivo</label>
-            <div class="input-row">
-                <input type="text" id="fileNameGetId" placeholder="Mi Documento Importante">
-                <button onclick="getFileId(this)"><span>&#8594;</span> Obtener ID del Archivo</button>
-            </div>
-            <div class="result-box" id="boxGetFileId">
-                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusGetFileId"></span></div>
-                <div class="result-body"><pre id="resultGetFileId"></pre></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <span class="method-badge">GET</span>
-            <span class="endpoint-path">/library/search_files/<span class="param">{search_key}</span></span>
-        </div>
-        <div class="card-body">
-            <label for="searchKeyFiles">Palabra clave de B&uacute;squeda</label>
-            <div class="input-row">
-                <input type="text" id="searchKeyFiles" placeholder="Reporte">
-                <button onclick="searchFiles(this)"><span>&#8594;</span> Buscar Archivos</button>
-            </div>
-            <div class="result-box" id="boxSearchFiles">
-                <div class="result-header"><span class="result-label">Response</span><span class="status-code" id="statusSearchFiles"></span></div>
-                <div class="result-body"><pre id="resultSearchFiles"></pre></div>
-            </div>
-        </div>
-    </div>
-
-
-    <footer>FEDRO 128 &middot; API TESTER &middot; RAILWAY PRODUCTION</footer>
-</div>
-<script>
-    const BASE = '';
-
-    function syntaxHighlight(json) {
-        if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
-        json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^"\\])*"(\s*)?:?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g, function(match) {
-            let cls = 'json-number';
-            if (/^"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-string';
-            else if (/true|false/.test(match)) cls = 'json-bool';
-            else if (/null/.test(match)) cls = 'json-null';
-            return '<span class="' + cls + '">' + match + '</span>';
-        });
-    }
-
-    async function callApi(path, inputId, boxId, preId, statusId, btn, label) {
-        const val = inputId ? document.getElementById(inputId).value.trim() : '';
-        if (inputId && !val) { alert('Ingresa un valor primero.'); return; }
-        const box = document.getElementById(boxId);
-        const pre = document.getElementById(preId);
-        const statusEl = document.getElementById(statusId);
-        btn.classList.add('loading');
-        btn.innerHTML = '<span class="spinner"></span> Cargando...';
-        box.classList.add('visible');
-        pre.innerHTML = '<span style="color:var(--muted)">Esperando respuesta...</span>';
-        statusEl.textContent = '';
-        statusEl.className = 'status-code';
-        try {
-            const url = BASE + (inputId ? path.replace('{p}', encodeURIComponent(val)) : path);
-            const res = await fetch(url);
-            const data = await res.json();
-            statusEl.textContent = res.status;
-            statusEl.classList.add(res.ok ? 'ok' : 'error');
-            pre.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
-        } catch (err) {
-            statusEl.textContent = 'ERROR';
-            statusEl.classList.add('error');
-            pre.innerHTML = '<span style="color:var(--accent3)">' + err.message + '</span>';
-        } finally {
-            btn.classList.remove('loading');
-            btn.innerHTML = '<span>&#8594;</span> ' + label;
-        }
-    }
-
-    function getPerfil(btn)         { callApi('/auth/perfil/{p}',               'telefonoPerfil',   'boxPerfil',       'resultPerfil',       'statusPerfil',       btn, 'Obtener Perfil'); }
-    function getRut(btn)            { callApi('/auth/rut/{p}',                  'telefonoRut',      'boxRut',          'resultRut',          'statusRut',          btn, 'Obtener RUT'); }
-    function getClientall(btn)      { callApi('/auth/clientall/{p}',            'rutClientall',     'boxClientall',    'resultClientall',    'statusClientall',    btn, 'Obtener Cliente'); }
-    function getMembresiaAnual(btn) { callApi('/financial/membresia_anual/{p}', 'rutMembresia',     'boxMembresia',    'resultMembresia',    'statusMembresia',    btn, 'Membres&iacute;a Anual'); }
-    function getDeudaArrastre(btn)  { callApi('/financial/deuda_arrastre/{p}',  'rutDeudaArrastre', 'boxDeudaArrastre','resultDeudaArrastre','statusDeudaArrastre',btn, 'Deuda de Arrastre'); }
-    function getCuotaAnual(btn)     { callApi('/financial/cuota_anual/{p}',     'rutCuotaAnual',    'boxCuotaAnual',   'resultCuotaAnual',   'statusCuotaAnual',   btn, 'Cuota Anual'); }
-    function getPagadoALaFecha(btn) { callApi('/financial/pagado_a_la_fecha/{p}','rutPagadoFecha',  'boxPagadoFecha',  'resultPagadoFecha',  'statusPagadoFecha',  btn, 'Pagado a la Fecha'); }
-    function getDeuda(btn)          { callApi('/financial/deuda/{p}',           'rutDeuda',         'boxDeuda',        'resultDeuda',        'statusDeuda',        btn, 'Obtener Deuda'); }
-    function getMensaje(btn)        { callApi('/financial/mensaje/{p}',         'rutMensaje',       'boxMensaje',      'resultMensaje',      'statusMensaje',      btn, 'Obtener Mensaje'); }
-    function getFinancialAll(btn)   { callApi('/financial/all/{p}',             'rutFinancialAll',  'boxFinancialAll', 'resultFinancialAll', 'statusFinancialAll', btn, 'Obtener Todo Financiero'); }
-    // Nuevos endpoints de Biblioteca
-    function listFiles(btn)         { callApi('/library/list_files',            null,               'boxListFiles',    'resultListFiles',    'statusListFiles',    btn, 'Listar Todos los Archivos'); }
-    function getFileId(btn)         { callApi('/library/get_file_id/{p}',       'fileNameGetId',    'boxGetFileId',    'resultGetFileId',    'statusGetFileId',    btn, 'Obtener ID del Archivo'); }
-    function searchFiles(btn)       { callApi('/library/search_files/{p}',      'searchKeyFiles',   'boxSearchFiles',  'resultSearchFiles',  'statusSearchFiles',  btn, 'Buscar Archivos'); }
-</script>
-</body>
-</html>"""
+TESTER_HTML = '<!DOCTYPE html>\n<html lang=\\"es\\">\n<head>\n    <meta charset=\\"UTF-8\\">\n    <meta name=\\"viewport\\" content=\\"width=device-width, initial-scale=1.0\\">\n    <title>FEDRO API Tester</title>\n    <link href=\\"https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap\\" rel=\\"stylesheet\\">\n    <style>\n        :root {\n            --bg: #0a0c10; --surface: #111318; --surface2: #181c24;\n            --border: #1e2430; --accent: #00e5a0; --accent2: #0070f3;\n            --accent3: #ff4d6d; --text: #e8e4f0; --muted: #5a6070;\n            --mono: \'Space Mono\', monospace; --sans: \'Syne\', sans-serif;\n        }\n        * { box-sizing: border-box; margin: 0; padding: 0; }\n        body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }\n        body::before {\n            content: \'\'; position: fixed; inset: 0;\n            background-image: linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),\n                              linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);\n            background-size: 40px 40px; pointer-events: none; z-index: 0;\n        }\n        .wrapper { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }\n        header { margin-bottom: 56px; display: flex; align-items: flex-start; gap: 20px; }\n        .logo-badge {\n            width: 52px; height: 52px; background: var(--accent); border-radius: 12px;\n            display: flex; align-items: center; justify-content: center; flex-shrink: 0;\n            font-family: var(--mono); font-size: 11px; font-weight: 700; color: #000;\n            letter-spacing: -0.5px; line-height: 1.1; text-align: center; padding: 6px;\n        }\n        .header-text h1 { font-size: 32px; font-weight: 800; letter-spacing: -1px; color: var(--text); line-height: 1; margin-bottom: 8px; }\n        .header-text h1 span { color: var(--accent); }\n        .header-text p { font-family: var(--mono); font-size: 12px; color: var(--muted); }\n        .header-text p code { color: var(--accent); background: rgba(0,229,160,0.08); padding: 2px 6px; border-radius: 4px; font-size: 11px; }\n        .status-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 40px; font-family: var(--mono); font-size: 11px; color: var(--muted); }\n        .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 2s ease-in-out infinite; }\n        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }\n        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 20px; overflow: hidden; transition: border-color 0.2s; }\n        .card:hover { border-color: #2a3040; }\n        .card-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }\n        .method-badge { font-family: var(--mono); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: rgba(0,112,243,0.15); color: var(--accent2); border: 1px solid rgba(0,112,243,0.25); letter-spacing: 1px; }\n        .endpoint-path { font-family: var(--mono); font-size: 14px; color: var(--text); flex: 1; }\n        .endpoint-path .param { color: var(--accent); }\n        .card-body { padding: 20px 24px 24px; }\n        label { display: block; font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }\n        .input-row { display: flex; gap: 10px; align-items: stretch; }\n        input[type=\\"text\\"] { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; font-family: var(--mono); font-size: 13px; color: var(--text); outline: none; transition: border-color 0.2s, box-shadow 0.2s; }\n        input[type=\\"text\\"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,229,160,0.1); }\n        input[type=\\"text\\"]::placeholder { color: var(--muted); }\n        button { background: var(--accent); color: #000; border: none; border-radius: 10px; padding: 12px 20px; font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; transition: opacity 0.15s, transform 0.1s; white-space: nowrap; display: flex; align-items: center; gap: 7px; }\n        button:hover { opacity: 0.88; }\n        button:active { transform: scale(0.97); }\n        button.loading { opacity: 0.6; pointer-events: none; }\n        .result-box { margin-top: 16px; border-radius: 10px; overflow: hidden; background: var(--surface2); border: 1px solid var(--border); display: none; }\n        .result-box.visible { display: block; }\n        .result-header { padding: 8px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }\n        .result-label { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }\n        .status-code { font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 5px; }\n        .status-code.ok { background: rgba(0,229,160,0.12); color: var(--accent); }\n        .status-code.error { background: rgba(255,48,70,0.12); color: var(--accent3); }\n        .result-body { padding: 14px; max-height: 300px; overflow-y: auto; }\n        pre { font-family: var(--mono); font-size: 12px; line-height: 1.7; color: #a8b4c8; white-space: pre-wrap; word-break: break-all; }\n        pre .json-key { color: #7ec8e3; }\n        pre .json-string { color: #a8e6b0; }\n        pre .json-number { color: #ffd580; }\n        pre .json-bool { color: #ff8c69; }\n        pre .json-null { color: var(--muted); }\n        .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(0,0,0,0.2); border-top-color: #000; border-radius: 50%; animation: spin 0.6s linear infinite; }\n        @keyframes spin { to { transform: rotate(360deg); } }\n        footer { margin-top: 60px; text-align: center; font-family: var(--mono); font-size: 11px; color: var(--muted); }\n        ::-webkit-scrollbar { width: 6px; }\n        ::-webkit-scrollbar-track { background: transparent; }\n        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }\n    </style>\n</head>\n<body>\n<div class=\\"wrapper\\">\n    <header>\n        <div class=\\"logo-badge\\">FE<br>DRO</div>\n        <div class=\\"header-text\\">\n            <h1>FEDRO <span>API</span> Tester</h1>\n            <p>Conectado a: {api_base_url_placeholder}</p>\n            <p>API Version: {api_version_placeholder} &middot; Entorno: {api_environment_placeholder}</p>\n        </div>\n    </header>\n    <div class=\\"status-bar\\">\n        <div class=\\"status-dot\\"></div>\n        RAILWAY &middot; PRODUCCI&Oacute;N &middot; REST API\n    </div>\n\n    <!-- Auth Endpoints -->\n    <div class=\\"card\\">\n        <div class=\\"card-header\\">\n            <span class=\\"method-badge\\">GET</span>\n            <span class=\\"endpoint-path\\">/auth/perfil/{telefono}</span>\n        </div>\n        <div class=\\"card-body\\">\n            <label for=\\"telefonoPerfil\\">Tel&eacute;fono &mdash; formato internacional</label>\n            <div class=\\"input-row\\">\n                <input type=\\"text\\" id=\\"telefonoPerfil\\" placeholder=\\"912345678\\">\n                <button onclick=\\"getPerfil(this)\\"><span>&#8594;</span> Obtener Perfil</button>\n            </div>\n            <div class=\\"result-box\\" id=\\"boxPerfil\\">\n                <div class=\\"result-header\\"><span class=\\"result-label\\">Response</span><span class=\\"status-code\\" id=\\"statusPerfil\\"></span></div>\n                <div class=\\"result-body\\"><pre id=\\"resultPerfil\\"></pre></div>\n            </div>\n        </div>\n    </div>\n\n    <div class=\\"card\\">\n        <div class=\\"card-header\\">\n            <span class=\\"method-badge\\">GET</span>\n            <span class=\\"endpoint-path\\">/auth/rut/{telefono}</span>\n        </div>\n        <div class=\\"card-body\\">\n            <label for=\\"telefonoRut\\">Tel&eacute;fono &mdash; formato internacional</label>\n            <div class=\\"input-row\\">\n                <input type=\\"text\\" id=\\"telefonoRut\\" placeholder=\\"912345678\\">\n                <button onclick=\\"getRut(this)\\"><span>&#8594;</span> Obtener RUT</button>\n            </div>\n            <div class=\\"result-box\\" id=\\"boxRut\\">\n                <div class=\\"result-header\\"><span class=\\"result-label\\">Response</span><span class=\\"status-code\\" id=\\"statusRut\\"></span></div>\n                <div class=\\"result-body\\"><pre id=\\"resultRut\\"></pre></div>\n            </div>\n        </div>\n    </div>\n\n    <div class=\\"card\\">\n        <div class=\\"card-header\\">\n            <span class=\\"method-badge\\">GET</span>\n            <span class=\\"endpoint-path\\">/auth/clientall/{rut_without_dv}</span>\n        </div>\n        <div class=\\"card-body\\">\n            <label for=\\"rutClientall\\">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>\n            <div class=\\"input-row\\">\n                <input type=\\"text\\" id=\\"rutClientall\\" placeholder=\\"12345678\\">\n                <button onclick=\\"getClientall(this)\\"><span>&#8594;</span> Obtener Cliente</button>\n            </div>\n            <div class=\\"result-box\\" id=\\"boxClientall\\">\n                <div class=\\"result-header\\"><span class=\\"result-label\\">Response</span><span class=\\"status-code\\" id=\\"statusClientall\\"></span></div>\n                <div class=\\"result-body\\"><pre id=\\"resultClientall\\"></pre></div>\n            </div>\n        </div>\n    </div>\n\n    <!-- Financial Endpoints -->\n    <div class=\\"card\\">\n        <div class=\\"card-header\\">\n            <span class=\\"method-badge\\">GET</span>\n            <span class=\\"endpoint-path\\">/financial/membresia_anual/{rut_without_dv}</span>\n        </div>\n        <div class=\\"card-body\\">\n            <label for=\\"rutMembresia\\">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>\n            <div class=\\"input-row\\">\n                <input type=\\"text\\" id=\\"rutMembresia\\" placeholder=\\"12345678\\">\n                <button onclick=\\"getMembresiaAnual(this)\\"><span>&#8594;</span> Membres&iacute;a Anual</button>\n            </div>\n            <div class=\\"result-box\\" id=\\"boxMembresia\\">\n                <div class=\\"result-header\\"><span class=\\"result-label\\">Response</span><span class=\\"status-code\\" id=\\"statusMembresia\\"></span></div>\n                <div class=\\"result-body\\"><pre id=\\"resultMembresia\\"></pre></div>\n            </div>\n        </div>\n    </div>\n\n    <div class=\\"card\\">\n        <div class=\\"card-header\\">\n            <span class=\\"method-badge\\">GET</span>\n            <span class=\\"endpoint-path\\">/financial/deuda_arrastre/{rut_without_dv}</span>\n        </div>\n        <div class=\\"card-body\\">\n            <label for=\\"rutDeudaArrastre\\">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>\n            <div class=\\"input-row\\">\n                <input type=\\"text\\" id=\\"rutDeudaArrastre\\" placeholder=\\"12345678\\">\n                <button onclick=\\"getDeudaArrastre(this)\\"><span>&#8594;</span> Deuda de Arrastre</button>\n            </div>\n            <div class=\\"result-box\\" id=\\"boxDeudaArrastre\\">\n                <div class=\\"result-header\\"><span class=\\"result-label\\">Response</span><span class=\\"status-code\\" id=\\"statusDeudaArrastre\\"></span></div>\n                <div class=\\"result-body\\"><pre id=\\"resultDeudaArrastre\\"></pre></div>\n            </div>\n        </div>\n    </div>\n\n    <div class=\\"card\\">\n        <div class=\\"card-header\\">\n            <span class=\\"method-badge\\">GET</span>\n            <span class=\\"endpoint-path\\">/financial/cuota_anual/{rut_without_dv}</span>\n        </div>\n        <div class=\\"card-body\\">\n            <label for=\\"rutCuotaAnual\\">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>\n            <div class=\\"input-row\\">\n                <input type=\\"text\\" id=\\"rutCuotaAnual\\" placeholder=\\"12345678\\">\n                <button onclick=\\"getCuotaAnual(this)\\"><span>&#8594;</span> Cuota Anual</button>\n            </div>\n            <div class=\\"result-box\\" id=\\"boxCuotaAnual\\">\n                <div class=\\"result-header\\"><span class=\\"result-label\\">Response</span><span class=\\"status-code\\" id=\\"statusCuotaAnual\\"></span></div>\n                <div class=\\"result-body\\"><pre id=\\"resultCuotaAnual\\"></pre></div>\n            </div>\n        </div>\n    </div>\n\n    <div class=\\"card\\">\n        <div class=\\"card-header\\">\n            <span class=\\"method-badge\\">GET</span>\n            <span class=\\"endpoint-path\\">/financial/pagado_a_la_fecha/{rut_without_dv}</span>\n        </div>\n        <div class=\\"card-body\\">\n            <label for=\\"rutPagadoFecha\\">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>\n            <div class=\\"input-row\\">\n                <input type=\\"text\\" id=\\"rutPagadoFecha\\" placeholder=\\"12345678\\">\n                <button onclick=\\"getPagadoALaFecha(this)\\"><span>&#8594;</span> Pagado a la Fecha</button>\n            </div>\n            <div class=\\"result-box\\" id=\\"boxPagadoFecha\\">\n                <div class=\\"result-header\\"><span class=\\"result-label\\">Response</span><span class=\\"status-code\\" id=\\"statusPagadoFecha\\"></span></div>\n                <div class=\\"result-body\\"><pre id=\\"resultPagadoFecha\\"></pre></div>\n            </div>\n        </div>\n    </div>\n\n    <div class=\\"card\\">\n        <div class=\\"card-header\\">\n            <span class=\\"method-badge\\">GET</span>\n            <span class=\\"endpoint-path\\">/financial/deuda/{rut_without_dv}</span>\n        </div>\n        <div class=\\"card-body\\">\n            <label for=\\"rutDeuda\\">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>\n            <div class=\\"input-row\\">\n                <input type=\\"text\\" id=\\"rutDeuda\\" placeholder=\\"12345678\\">\n                <button onclick=\\"getDeuda(this)\\"><span>&#8594;</span> Obtener Deuda</button>\n            </div>\n            <div class=\\"result-box\\" id=\\"boxDeuda\\">\n                <div class=\\"result-header\\"><span class=\\"result-label\\">Response</span><span class=\\"status-code\\" id=\\"statusDeuda\\"></span></div>\n                <div class=\\"result-body\\"><pre id=\\"resultDeuda\\"></pre></div>\n            </div>\n        </div>\n    </div>\n\n    <div class=\\"card\\">\n        <div class=\\"card-header\\">\n            <span class=\\"method-badge\\">GET</span>\n            <span class=\\"endpoint-path\\">/financial/mensaje/{rut_without_dv}</span>\n        </div>\n        <div class=\\"card-body\\">\n            <label for=\\"rutMensaje\\">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>\n            <div class=\\"input-row\\">\n                <input type=\\"text\\" id=\\"rutMensaje\\" placeholder=\\"12345678\\">\n                <button onclick=\\"getMensaje(this)\\"><span>&#8594;</span> Obtener Mensaje</button>\n            </div>\n            <div class=\\"result-box\\" id=\\"boxMensaje\\">\n                <div class=\\"result-header\\"><span class=\\"result-label\\">Response</span><span class=\\"status-code\\" id=\\"statusMensaje\\"></span></div>\n                <div class=\\"result-body\\"><pre id=\\"resultMensaje\\"></pre></div>\n            </div>\n        </div>\n    </div>\n\n    <!-- ENDPOINT CONSOLIDADO -->\n    <div class=\\"card\\">\n        <div class=\\"card-header\\">\n            <span class=\\"method-badge\\">GET</span>\n            <span class=\\"endpoint-path\\">/financial/all/{rut_without_dv}</span>\n        </div>\n        <div class=\\"card-body\\">\n            <label for=\\"rutFinancialAll\\">RUT &mdash; sin d&iacute;gito verificador, sin puntos</label>\n            <div class=\\"input-row\\">\n                <input type=\\"text\\" id=\\"rutFinancialAll\\" placeholder=\\"12345678\\">\n                <button onclick=\\"getFinancialAll(this)\\"><span>&#8594;</span> Obtener Todo Financiero</button>\n            </div>\n            <div class=\\"result-box\\" id=\\"boxFinancialAll\\">\n                <div class=\\"result-header\\"><span class=\\"result-label\\">Response</span><span class=\\"status-code\\" id=\\"statusFinancialAll\\"></span></div>\n                <div class=\\"result-body\\"><pre id=\\"resultFinancialAll\\"></pre></div>\n            </div>\n        </div>\n    </div>\n\n    <!-- NUEVOS ENDPOINTS DE BIBLIOTECA -->\n    <div class=\\"card\\">\n        <div class=\\"card-header\\">\n            <span class=\\"method-badge\\">GET</span>\n            <span class=\\"endpoint-path\\">/library/list_files</span>\n        </div>\n        <div class=\\"card-body\\">\n            <button onclick=\\"listFiles(this)\\"><span>&#8594;</span> Listar Todos los Archivos</button>\n            <div class=\\"result-box\\" id=\\"boxListFiles\\">\n                <div class=\\"result-header\\"><span class=\\"result-label\\">Response</span><span class=\\"status-code\\" id=\\"statusListFiles\\"></span></div>\n                <div class=\\"result-body\\"><pre id=\\"resultListFiles\\"></pre></div>\n            </div>\n        </div>\n    </div>\n\n    <div class=\\"card\\">\n        <div class=\\"card-header\\">\n            <span class=\\"method-badge\\">GET</span>\n            <span class=\\"endpoint-path\\">/library/get_file_id/{file_name}</span>\n        </div>\n        <div class=\\"card-body\\">\n            <label for=\\"fileNameGetId\\">Nombre del Archivo</label>\n            <div class=\\"input-row\\">\n                <input type=\\"text\\" id=\\"fileNameGetId\\" placeholder=\\"Mi Documento Importante\\">\n                <button onclick=\\"getFileId(this)\\"><span>&#8594;</span> Obtener ID del Archivo</button>\n            </div>\n            <div class=\\"result-box\\" id=\\"boxGetFileId\\">\n                <div class=\\"result-header\\"><span class=\\"result-label\\">Response</span><span class=\\"status-code\\" id=\\"statusGetFileId\\"></span></div>\n                <div class=\\"result-body\\"><pre id=\\"resultGetFileId\\"></pre></div>\n            </div>\n        </div>\n    </div>\n\n    <div class=\\"card\\">\n        <div class=\\"card-header\\">\n            <span class=\\"method-badge\\">GET</span>\n            <span class=\\"endpoint-path\\">/library/search_files/{search_key}</span>\n        </div>\n        <div class=\\"card-body\\">\n            <label for=\\"searchKeyFiles\\">Palabra clave de B&uacute;squeda</label>\n            <div class=\\"input-row\\">\n                <input type=\\"text\\" id=\\"searchKeyFiles\\" placeholder=\\"Reporte\\">\n                <button onclick=\\"searchFiles(this)\\"><span>&#8594;</span> Buscar Archivos</button>\n            </div>\n            <div class=\\"result-box\\" id=\\"boxSearchFiles\\">\n                <div class=\\"result-header\\"><span class=\\"result-label\\">Response</span><span class=\\"status-code\\" id=\\"statusSearchFiles\\"></span></div>\n                <div class=\\"result-body\\"><pre id=\\"resultSearchFiles\\"></pre></div>\n            </div>\n        </div>\n    </div>\n\n\n    <footer>FEDRO 128 &middot; API TESTER &middot; RAILWAY PRODUCTION</footer>\n</div>\n<script>\n    const BASE = \'\';\n\n    function syntaxHighlight(json) {\n        if (typeof json !== \'string\') json = JSON.stringify(json, null, 2);\n        json = json.replace(/&/g, \'&amp;\').replace(/</g, \'&lt;\').replace(/>/g, \'&gt;\');\n        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\\\[^u]|[^\\"\\\\])*"(\\s*)?:?|\\\\b(true|false|null)\\\\b|-?\\\\d+(?:\\\\.\\\\d*)?(?:[eE][+\\\\-]?\\\\d+)?)/g, function(match) {\n            let cls = \'json-number\';\n            if (/^\\".*\\"/.test(match)) cls = /:$/.test(match) ? \'json-key\' : \'json-string\';\n            else if (/true|false/.test(match)) cls = \'json-bool\';\n            else if (/null/.test(match)) cls = \'json-null\';\n            return \'<span class=\\"\' + cls + \'\\">\' + match + \'</span>\';\n        });\n    }\n\n    async function callApi(path, inputId, boxId, preId, statusId, btn, label) {\n        const val = inputId ? document.getElementById(inputId).value.trim() : \'\';\n        if (inputId && !val) { alert(\'Ingresa un valor primero.\'); return; }\n        const box = document.getElementById(boxId);\n        const pre = document.getElementById(preId);\n        const statusEl = document.getElementById(statusId);\n        btn.classList.add(\'loading\');\n        btn.innerHTML = \'<span class=\\"spinner\\"></span> Cargando...\';\n        box.classList.add(\'visible\');\n        pre.innerHTML = \'<span style=\\"color:var(--muted)\\">Esperando respuesta...</span>\';\n        statusEl.textContent = \'\';\n        statusEl.className = \'status-code\';\n        try {\n            const url = BASE + (inputId ? path.replace(\'{p}\', encodeURIComponent(val)) : path);\n            const res = await fetch(url);\n            const data = await res.json();\n            statusEl.textContent = res.status;\n            statusEl.classList.add(res.ok ? \'ok\' : \'error\');\n            pre.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));\n        } catch (err) {\n            statusEl.textContent = \'ERROR\';\n            statusEl.classList.add(\'error\');\n            pre.innerHTML = \'<span style=\\"color:var(--accent3)\\">\' + err.message + \'</span>\';\n        } finally {\n            btn.classList.remove(\'loading\');\n            btn.innerHTML = \'<span>&#8594;</span> \' + label;\n        }\n    }\n\n    function getPerfil(btn)         { callApi(\'/auth/perfil/{p}\',               \'telefonoPerfil\',   \'boxPerfil\',       \'resultPerfil\',       \'statusPerfil\',       btn, \'Obtener Perfil\'); }\n    function getRut(btn)            { callApi(\'/auth/rut/{p}\',                  \'telefonoRut\',      \'boxRut\',          \'resultRut\',          \'statusRut\',          btn, \'Obtener RUT\'); }\n    function getClientall(btn)      { callApi(\'/auth/clientall/{p}\',            \'rutClientall\',     \'boxClientall\',    \'resultClientall\',    \'statusClientall\',    btn, \'Obtener Cliente\'); }\n    function getMembresiaAnual(btn) { callApi(\'/financial/membresia_anual/{p}\', \'rutMembresia\',     \'boxMembresia\',    \'resultMembresia\',    \'statusMembresia\',    btn, \'Membres&iacute;a Anual\'); }\n    function getDeudaArrastre(btn)  { callApi(\'/financial/deuda_arrastre/{p}\',  \'rutDeudaArrastre\', \'boxDeudaArrastre\',\'resultDeudaArrastre\',\'statusDeudaArrastre\',btn, \'Deuda de Arrastre\'); }\n    function getCuotaAnual(btn)     { callApi(\'/financial/cuota_anual/{p}\',     \'rutCuotaAnual\',    \'boxCuotaAnual\',   \'resultCuotaAnual\',   \'statusCuotaAnual\',   btn, \'Cuota Anual\'); }\n    function getPagadoALaFecha(btn) { callApi(\'/financial/pagado_a_la_fecha/{p}\',\'rutPagadoFecha\',  \'boxPagadoFecha\',  \'resultPagadoFecha\',  \'statusPagadoFecha\',  btn, \'Pagado a la Fecha\'); }\n    function getDeuda(btn)          { callApi(\'/financial/deuda/{p}\',           \'rutDeuda\',         \'boxDeuda\',        \'resultDeuda\',        \'statusDeuda\',        btn, \'Obtener Deuda\'); }\n    function getMensaje(btn)        { callApi(\'/financial/mensaje/{p}\',         \'rutMensaje\',       \'boxMensaje\',      \'resultMensaje\',      \'statusMensaje\',      btn, \'Obtener Mensaje\'); }\n    function getFinancialAll(btn)   { callApi(\'/financial/all/{p}\',             \'rutFinancialAll\',  \'boxFinancialAll\', \'resultFinancialAll\', \'statusFinancialAll\', btn, \'Obtener Todo Financiero\'); }\n    // Nuevos endpoints de Biblioteca\n    function listFiles(btn)         { callApi(\'/library/list_files\',            null,               \'boxListFiles\',    \'resultListFiles\',    \'statusListFiles\',    btn, \'Listar Todos los Archivos\'); }\n    function getFileId(btn)         { callApi(\'/library/get_file_id/{p}\',       \'fileNameGetId\',    \'boxGetFileId\',    \'resultGetFileId\',    \'statusGetFileId\',    btn, \'Obtener ID del Archivo\'); }\n    function searchFiles(btn)       { callApi(\'/library/search_files/{p}\',      \'searchKeyFiles\',   \'boxSearchFiles\',  \'resultSearchFiles\',  \'statusSearchFiles\',  btn, \'Buscar Archivos\'); }\n</script>\n</body>\n</html>'
 
 
 # --- CAPA DE CONFIANZA: IDENTIDAD DE DATOS (CUENTA FEDRO) ---
@@ -498,7 +111,8 @@ def get_tester():
         api_base_url = "http://localhost:8000" # For local testing in Colab
 
     return HTMLResponse(
-        content=TESTER_HTML
+        content=
+TESTER_HTML_CONTENT
         .replace('{api_version_placeholder}', VERSION)
         .replace('{api_environment_placeholder}', api_environment)
         .replace('{api_base_url_placeholder}', api_base_url)
@@ -759,11 +373,18 @@ def _get_biblioteca_folder_id():
     return items[0]['id']
 
 
+
+
+
+
 # --- ENDPOINTS DE BIBLIOTECA ---
 @app.get("/library/list_files")
 def list_all_drive_files():
+     import pdb
+     pdb.set_trace()
     try:
         biblioteca_folder_id = _get_biblioteca_folder_id()
+        print(f"BIBLIOTECA folder ID: {biblioteca_folder_id}") 
         client = get_sheets_client()
         # List all files within the 'BIBLIOTECA' folder
         query = f"'{biblioteca_folder_id}' in parents and trashed = false"
