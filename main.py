@@ -8,7 +8,7 @@ import gspread
 from fastapi.middleware.cors import CORSMiddleware
 
 # --- METADATA DEL PROYECTO ---
-VERSION = "1.02.001" # Versión actualizada para asegurar un cambio detectable
+VERSION = "1.03.003" # Versión actualizada para asegurar un cambio detectable
 app = FastAPI(title="FEDRO API", version=VERSION)
 
 # --- Configuración CORS ---
@@ -330,7 +330,7 @@ def get_mensaje(rut_without_dv: str):
             raise e
         raise HTTPException(status_code=500, detail=f"Error en FEDRO-API: {str(e)}")
 
-# --- ENDPOINT: Obtener Todos los Datos Financieros por RUT ---
+# --- ENDPOINT: Obtener Todos los Datos Financieros por RUT ----
 @app.get("/financial/all/{rut_without_dv}")
 def get_financial_all(rut_without_dv: str):
     try:
@@ -380,11 +380,11 @@ def _get_biblioteca_folder_id():
 # --- ENDPOINTS DE BIBLIOTECA ---
 @app.get("/library/list_files")
 def list_all_drive_files():
-     import pdb
-     pdb.set_trace()
+    import pdb
+    pdb.set_trace()
     try:
         biblioteca_folder_id = _get_biblioteca_folder_id()
-        print(f"BIBLIOTECA folder ID: {biblioteca_folder_id}") 
+        print(f"BIBLIOTECA folder ID: {biblioteca_folder_id}")
         client = get_sheets_client()
         # List all files within the 'BIBLIOTECA' folder
         query = f"'{biblioteca_folder_id}' in parents and trashed = false"
