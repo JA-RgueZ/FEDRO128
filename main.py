@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from googleapiclient.discovery import build # New import for Google Drive API
 
 # --- METADATA DEL PROYECTO ---
-VERSION = "1.03.013" # Versión actualizada para asegurar un cambio detectable
+VERSION = "1.03.014" # Versión actualizada para asegurar un cambio detectable
 app = FastAPI(title="FEDRO API", version=VERSION)
 
 # --- Configuración CORS ---
